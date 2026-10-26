@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Medicare</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+
+<style>
+*{box-sizing:border-box;margin:0}
+body{font-family:Arial,sans-serif;background:#f6fbfb;color:#123f73}
+header,.hero,.features{max-width:1000px;width:90%;margin:auto}
+header{display:flex;justify-content:space-between;align-items:center;padding:30px 0}
+.logo{display:flex;align-items:center;gap:12px;text-decoration:none;color:#123f73}
+.logo b{font-size:25px}.logo small{display:block;letter-spacing:4px;color:#789}
+.logo i{background:#35aa9a;color:white;border-radius:50%;padding:15px;font-size:25px;font-style:normal}
+.header-right{display:flex;align-items:center;gap:20px}
+.tag{text-align:right;color:#47748b;font-size:14px}
+.nav-btn{
+    text-decoration:none;
+    padding:8px 20px;
+    border-radius:20px;
+    font-weight:bold;
+    font-size:14px;
+    transition:.2s;
+}
+.nav-login{color:#155985;border:1px solid #155985}
+.nav-login:hover{background:#155985;color:white}
+.nav-register{background:#35aa9a;color:white}
+.nav-register:hover{background:#2b8b7e}
+
+.hero{padding:55px 0 35px}
+.welcome{color:#188774;background:#e3f4ef;padding:8px 16px;border-radius:20px;display:inline-block}
+h1{font-size:48px;margin:20px 0;line-height:1.1}
+.hero span{color:#15947f}
+.hero p{max-width:650px;color:#60798e;font-size:18px;line-height:1.6}
+
+.title{text-align:center;margin:30px 0}
+.features{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+.card{padding:25px;border-radius:20px;display:flex;align-items:center;gap:18px;
+box-shadow:0 7px 20px #00000010;transition:.3s;cursor:pointer;text-decoration:none;color:inherit}
+.card:hover{transform:translateY(-5px)}
+.card:nth-child(1){background:#eaf6ff}
+.card:nth-child(2){background:#f3efff}
+.card:nth-child(3){background:#eaf8f1}
+.card:nth-child(4){background:#fff3e7}
+.icon{font-size:30px;background:white;border-radius:50%;padding:15px}
+.card h2{font-size:19px;margin-bottom:7px}
+.card p{font-size:14px;color:#60798e;line-height:1.4}
+.arrow{margin-left:auto;font-size:25px}
+
+.start{text-align:center;margin:40px}
+button{padding:15px 55px;border:0;border-radius:30px;background:#155985;
+color:white;font-size:18px;cursor:pointer;transition:.2s}
+button:hover{background:#0e4265}
+.login{margin-top:15px;color:#678}
+.login a{color:#1475d1;font-weight:bold;text-decoration:none}
+.login a:hover{text-decoration:underline}
+
+footer{text-align:center;padding:30px;background:#e5f5f2;color:#527389;margin-top:40px}
+
+@media(max-width:700px){
+header{flex-direction:column;align-items:flex-start;gap:15px}
+.header-right{flex-direction:column;align-items:flex-start;gap:10px}
+.tag{text-align:left}.features{grid-template-columns:1fr}
+h1{font-size:38px}
+}
+</style>
+</head>
+
+<body>
+
+<header>
+<a href="/" class="logo">
+<i>♡</i>
+<div><b>Medicare</b><small>SYSTEM</small></div>
+</a>
+<div class="header-right">
+<div class="tag">Healthier Today,<br>Brighter Tomorrow ♡</div>
+
+<a href="/login" class="nav-btn nav-login">Login</a>
+<a href="/registration" class="nav-btn nav-register">Register</a>
+</div>
+</header>
+
+<section class="hero">
+<div class="welcome">✨ Welcome</div>
+<h1>Your Health.<br>Your <span>Family.</span><br>All in One Place.</h1>
+<p>A simple platform to manage your health information,
+family medical history and important medical records.</p>
+</section>
+
+<h2 class="title">Everything You Need</h2>
+
+<section class="features">
+
+<div class="card" onclick="go('/dashboard')">
+<div class="icon">👤</div>
+<div><h2>My Health Profile</h2><p>Manage your personal health information.</p></div>
+<div class="arrow">›</div>
+</div>
+
+<div class="card" onclick="go('/dashboard')">
+<div class="icon">👨‍👩‍👧‍👦</div>
+<div><h2>Family Medical History</h2><p>Manage your family's medical history.</p></div>
+<div class="arrow">›</div>
+</div>
+
+<div class="card" onclick="go('/dashboard')">
+<div class="icon">📋</div>
+<div><h2>Medical Records</h2><p>Store reports and medical documents.</p></div>
+<div class="arrow">›</div>
+</div>
+
+<div class="card" onclick="go('/dashboard')">
+<div class="icon">⚙️</div>
+<div><h2>Settings & Preferences</h2><p>Manage your account and preferences.</p></div>
+<div class="arrow">›</div>
+</div>
+
+</section>
+
+<div class="start">
+<button onclick="go('/registration')">Get Started →</button>
+<div class="login">Already have an account? <a href="/login">Login</a></div>
+</div>
+
+<footer>♡ Better Care • Stronger Families • Healthier Lives</footer>
+
+<script>
+function go(page){
+    window.location.href = page;
+}
+</script>
+
+</body>
+</html>

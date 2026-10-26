@@ -1,0 +1,472 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Patient Registration</title>
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #f2f7fb;
+            margin: 0;
+            padding: 30px;
+        }
+
+        .container {
+            width: 75%;
+            margin: auto;
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 0 12px #ccc;
+        }
+
+        h1 {
+            text-align: center;
+            color: #256b8f;
+        }
+
+        h2 {
+            color: #256b8f;
+            border-bottom: 2px solid #ddd;
+            padding-bottom: 8px;
+            margin-top: 30px;
+        }
+
+        .row {
+            display: flex;
+            gap: 20px;
+        }
+
+        .field {
+            flex: 1;
+        }
+
+        label {
+            display: block;
+            margin-top: 15px;
+            font-weight: bold;
+        }
+
+        input, select, textarea {
+            width: 100%;
+            padding: 10px;
+            margin-top: 6px;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            box-sizing: border-box;
+        }
+
+        textarea {
+            height: 80px;
+            resize: vertical;
+        }
+
+        .buttons {
+            display: flex;
+            gap: 15px;
+            margin-top: 30px;
+        }
+
+        button {
+            flex: 1;
+            padding: 12px;
+            border: none;
+            border-radius: 6px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+
+        .save {
+            background: #256b8f;
+            color: white;
+        }
+
+        .clear {
+            background: #ddd;
+        }
+
+        button:hover {
+            opacity: 0.85;
+        }
+    </style>
+</head>
+
+<body>
+
+<div class="container">
+
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+        <a href="/" style="color:#256b8f; text-decoration:none; font-weight:bold;">← Back to Home</a>
+        <div style="display:flex; gap:15px; align-items:center;">
+            <a href="/login" style="color:#256b8f; text-decoration:none; font-weight:bold;">Login</a>
+            <a href="/dashboard" style="color:#256b8f; text-decoration:none; font-weight:bold;">Dashboard</a>
+
+        </div>
+    </div>
+
+    <h1>Patient Registration Form</h1>
+
+    <!-- FORM START -->
+    <form action="/register" method="POST">
+
+        <!-- 2. BASIC PATIENT DETAILS -->
+        <h2>2. Basic Patient Details</h2>
+
+        <div class="row">
+
+            <div class="field">
+                <label>Patient ID</label>
+                <input type="text"
+                       placeholder="Auto-generated ID"
+                       disabled>
+            </div>
+
+            <div class="field">
+                <label>Full Name *</label>
+                <input type="text"
+                       name="full_name"
+                       placeholder="Enter patient's full name"
+                       required>
+            </div>
+
+        </div>
+
+        <div class="row">
+
+            <div class="field">
+                <label>Date of Birth *</label>
+                <input type="date"
+                       name="dob"
+                       required>
+            </div>
+
+            <div class="field">
+                <label>Age</label>
+                <input type="number"
+                       name="age"
+                       placeholder="Enter age">
+            </div>
+
+        </div>
+
+        <div class="row">
+
+            <div class="field">
+                <label>Gender *</label>
+
+                <select name="gender" required>
+                    <option value="">Select Gender</option>
+                    <option value="Male">Male</option>
+                    <option value="Female">Female</option>
+                    <option value="Other">Other</option>
+                </select>
+
+            </div>
+
+            <div class="field">
+
+                <label>Blood Group</label>
+
+                <select name="blood_group">
+                    <option value="">Select Blood Group</option>
+                    <option value="A+">A+</option>
+                    <option value="A-">A-</option>
+                    <option value="B+">B+</option>
+                    <option value="B-">B-</option>
+                    <option value="AB+">AB+</option>
+                    <option value="AB-">AB-</option>
+                    <option value="O+">O+</option>
+                    <option value="O-">O-</option>
+                </select>
+
+            </div>
+
+        </div>
+
+        <div class="row">
+
+            <div class="field">
+
+                <label>Marital Status</label>
+
+                <select name="marital_status">
+                    <option value="">Select Status</option>
+                    <option value="Single">Single</option>
+                    <option value="Married">Married</option>
+                    <option value="Divorced">Divorced</option>
+                    <option value="Widowed">Widowed</option>
+                </select>
+
+            </div>
+
+            <div class="field">
+
+                <label>Occupation</label>
+
+                <input type="text"
+                       name="occupation"
+                       placeholder="Enter occupation">
+
+            </div>
+
+        </div>
+
+
+        <!-- 3. CONTACT INFORMATION -->
+        <h2>3. Contact Information</h2>
+
+        <div class="row">
+
+            <div class="field">
+
+                <label>Mobile Number *</label>
+
+                <input type="tel"
+                       name="mobile"
+                       placeholder="Enter 10-digit mobile number"
+                       required>
+
+            </div>
+
+            <div class="field">
+
+                <label>Alternate Mobile Number</label>
+
+                <input type="tel"
+                       name="alternate_mobile"
+                       placeholder="Enter alternate number">
+
+            </div>
+
+        </div>
+
+        <label>Email Address</label>
+
+        <input type="email"
+               name="email"
+               placeholder="Enter email address">
+
+
+        <label>Address *</label>
+
+        <textarea name="address"
+                  placeholder="Enter complete address"
+                  required></textarea>
+
+
+        <div class="row">
+
+            <div class="field">
+
+                <label>City</label>
+
+                <input type="text"
+                       name="city"
+                       placeholder="Enter city">
+
+            </div>
+
+            <div class="field">
+
+                <label>State</label>
+
+                <input type="text"
+                       name="state"
+                       placeholder="Enter state">
+
+            </div>
+
+            <div class="field">
+
+                <label>PIN Code</label>
+
+                <input type="text"
+                       name="pin_code"
+                       placeholder="Enter PIN code">
+
+            </div>
+
+        </div>
+
+
+
+        <!-- 4. ACCOUNT PASSWORD (FOR LOGIN) -->
+        <h2>4. Account Password (For Login)</h2>
+        <div style="background:#eef7fd; border-left:4px solid #155985; padding:12px 18px; border-radius:8px; margin:15px 0 20px 0;">
+            <p style="color:#155985; font-size:13px; margin:0; line-height:1.4;">
+                🔒 <strong>Create your personal login password.</strong> You will use your <strong>Mobile Number / Email</strong> and this <strong>Password</strong> to login to your dashboard and emergency profile.
+            </p>
+        </div>
+
+        <div class="row">
+            <div class="field">
+                <label>Create Login Password *</label>
+                <div style="position:relative; display:flex; align-items:center;">
+                    <input type="password"
+                           id="reg_password"
+                           name="password"
+                           placeholder="Enter password (minimum 4 characters)"
+                           required
+                           minlength="4"
+                           style="padding-right:40px;">
+                    <button type="button" 
+                            onclick="togglePasswordVisibility('reg_password', this)" 
+                            style="position:absolute; right:10px; background:none; border:none; cursor:pointer; font-size:16px; width:auto; padding:0; flex:none;">
+                            👁️
+                    </button>
+                </div>
+            </div>
+
+            <div class="field">
+                <label>Confirm Password *</label>
+                <div style="position:relative; display:flex; align-items:center;">
+                    <input type="password"
+                           id="reg_confirm_password"
+                           name="confirm_password"
+                           placeholder="Re-type your password"
+                           required
+                           onkeyup="checkPasswordMatch()"
+                           style="padding-right:40px;">
+                    <button type="button" 
+                            onclick="togglePasswordVisibility('reg_confirm_password', this)" 
+                            style="position:absolute; right:10px; background:none; border:none; cursor:pointer; font-size:16px; width:auto; padding:0; flex:none;">
+                            👁️
+                    </button>
+                </div>
+                <small id="pw_match_msg" style="display:block; margin-top:5px; font-weight:bold; font-size:12px;"></small>
+            </div>
+        </div>
+
+        <!-- 5. EMERGENCY CONTACT -->
+        <h2>5. Emergency Contact</h2>
+
+        <div class="row">
+
+            <div class="field">
+
+                <label>Contact Name *</label>
+
+                <input type="text"
+                       name="emergency_name"
+                       placeholder="Emergency contact name"
+                       required>
+
+            </div>
+
+            <div class="field">
+
+                <label>Relationship *</label>
+
+                <select name="emergency_relationship" required>
+
+                    <option value="">Select Relationship</option>
+                    <option value="Father">Father</option>
+                    <option value="Mother">Mother</option>
+                    <option value="Spouse">Spouse</option>
+                    <option value="Brother">Brother</option>
+                    <option value="Sister">Sister</option>
+                    <option value="Friend">Friend</option>
+                    <option value="Other">Other</option>
+
+                </select>
+
+            </div>
+
+        </div>
+
+
+        <label>Emergency Contact Number *</label>
+
+        <input type="tel"
+               name="emergency_number"
+               placeholder="Enter emergency contact number"
+               required>
+
+
+        <!-- 6. MEDICAL INFORMATION -->
+        <h2>6. Medical Information</h2>
+
+        <label>Known Allergies</label>
+
+        <textarea name="allergies"
+                  placeholder="Enter known allergies or write 'None'"></textarea>
+
+
+        <label>Existing Medical Conditions</label>
+
+        <textarea name="existing_conditions"
+                  placeholder="Example: Diabetes, Hypertension, Asthma"></textarea>
+
+
+        <label>Current Medications</label>
+
+        <textarea name="current_medications"
+                  placeholder="Enter current medicines, if any"></textarea>
+
+
+        <!-- BUTTONS -->
+
+        <div class="buttons">
+
+            <button type="submit" class="save">
+                Save & Continue
+            </button>
+
+            <button type="reset" class="clear">
+                Clear Form
+            </button>
+
+        </div>
+
+        <div style="text-align:center; margin-top:25px; color:#60798e;">
+            Already registered? <a href="/login" style="color:#256b8f; font-weight:bold; text-decoration:none;">Login here</a>
+        </div>
+
+    </form>
+    <!-- FORM END -->
+
+</div>
+
+
+<script>
+function togglePasswordVisibility(fieldId, btn) {
+    var field = document.getElementById(fieldId);
+    if (field.type === "password") {
+        field.type = "text";
+        btn.innerText = "🙈";
+    } else {
+        field.type = "password";
+        btn.innerText = "👁️";
+    }
+}
+
+function checkPasswordMatch() {
+    var p1 = document.getElementById("reg_password").value;
+    var p2 = document.getElementById("reg_confirm_password").value;
+    var msg = document.getElementById("pw_match_msg");
+    if (!p2) {
+        msg.innerText = "";
+        return;
+    }
+    if (p1 === p2) {
+        msg.innerText = "✓ Passwords match";
+        msg.style.color = "#188774";
+    } else {
+        msg.innerText = "✗ Passwords do not match";
+        msg.style.color = "#d32f2f";
+    }
+}
+
+document.querySelector("form").addEventListener("submit", function(e) {
+    var p1 = document.getElementById("reg_password").value;
+    var p2 = document.getElementById("reg_confirm_password").value;
+    if (p1 !== p2) {
+        e.preventDefault();
+        alert("Passwords do not match! Please verify your password.");
+        document.getElementById("reg_confirm_password").focus();
+    }
+});
+</script>
+</body>
+
+</html>

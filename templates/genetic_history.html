@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Genetic & Hereditary History - Medicare</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: Arial, sans-serif;
+            background: #f6fbfb;
+            color: #123f73;
+            min-height: 100vh;
+        }
+        header {
+            padding: 20px 6%;
+            background: white;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 3px 15px rgba(0,0,0,0.06);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+        .logo { display: flex; align-items: center; gap: 10px; text-decoration: none; color: #123f73; }
+        .logo-icon {
+            width: 44px; height: 44px; border-radius: 50%; background: #35aa9a; color: white;
+            display: flex; align-items: center; justify-content: center; font-size: 24px;
+        }
+        .logo h1 { font-size: 22px; }
+        .nav-links { display: flex; gap: 18px; align-items: center; }
+        .nav-link { color: #155985; text-decoration: none; font-weight: 600; font-size: 14px; }
+        .container {
+            width: 90%; max-width: 1050px; margin: 35px auto 60px auto;
+        }
+        .back-bar {
+            display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px;
+        }
+        .back-link {
+            color: #155985; text-decoration: none; font-weight: 600; display: inline-flex; align-items: center; gap: 6px;
+        }
+        .header-box {
+            background: white; padding: 30px; border-radius: 20px; box-shadow: 0 4px 18px rgba(0,0,0,0.04);
+            margin-bottom: 25px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px;
+        }
+        .header-box h2 { font-size: 26px; color: #155985; margin-bottom: 6px; }
+        .header-box p { color: #60798e; font-size: 14px; }
+        .btn-primary {
+            background: #155985; color: white; border: none; padding: 12px 22px;
+            border-radius: 20px; font-weight: bold; font-size: 14px; cursor: pointer; transition: 0.2s;
+        }
+        .btn-primary:hover { background: #0e4265; }
+
+        .layout-grid {
+            display: grid; grid-template-columns: 2fr 1.1fr; gap: 25px;
+        }
+
+        .card-list { display: flex; flex-direction: column; gap: 16px; }
+        .genetic-card {
+            background: white; border-radius: 16px; padding: 24px; box-shadow: 0 4px 16px rgba(0,0,0,0.04);
+            border-left: 6px solid #7986cb; position: relative;
+        }
+        .genetic-card-top {
+            display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;
+        }
+        .condition-title {
+            font-size: 18px; font-weight: bold; color: #123f73; display: flex; align-items: center; gap: 8px;
+        }
+        .risk-badge {
+            padding: 4px 12px; border-radius: 12px; font-size: 12px; font-weight: bold; text-transform: uppercase;
+        }
+        .risk-High { background: #ffebee; color: #c62828; }
+        .risk-Moderate { background: #fff8e1; color: #f57f17; }
+        .risk-Low { background: #e8f5e9; color: #2e7d32; }
+
+        .pattern-info {
+            font-size: 14px; color: #5c6bc0; font-weight: 600; margin-bottom: 8px;
+        }
+        .affected-line {
+            font-size: 13px; color: #555; margin-bottom: 8px;
+        }
+
+        /* Form Card */
+        .form-card {
+            background: white; padding: 26px; border-radius: 20px;
+            box-shadow: 0 4px 18px rgba(0,0,0,0.04); height: fit-content;
+        }
+        .form-card h3 {
+            color: #155985; margin-bottom: 15px; font-size: 18px;
+            padding-bottom: 8px; border-bottom: 2px solid #f0f4f7;
+        }
+        .form-group { margin-bottom: 14px; }
+        .form-group label { display: block; font-size: 13px; font-weight: bold; margin-bottom: 5px; color: #123f73; }
+        .form-group input, .form-group select, .form-group textarea {
+            width: 100%; padding: 10px 12px; border: 1px solid #d5e0e8;
+            border-radius: 8px; font-size: 14px; box-sizing: border-box; outline: none;
+        }
+        .form-group textarea { height: 60px; resize: vertical; }
+
+        .empty-state {
+            background: white; padding: 40px; border-radius: 16px;
+            text-align: center; color: #718496;
+        }
+        footer { text-align: center; padding: 30px; color: #718496; font-size: 14px; }
+
+        @media (max-width: 800px) { .layout-grid { grid-template-columns: 1fr; } }
+    </style>
+</head>
+<body>
+
+<header>
+    <a href="/" class="logo">
+        <div class="logo-icon">♡</div>
+        <h1>Medicare</h1>
+    </a>
+    <div class="nav-links">
+        <a class="nav-link" href="/">Home</a>
+        <a class="nav-link" href="/dashboard">Dashboard</a>
+        <a class="nav-link" href="/health-profile">Health Profile</a>
+        <a class="nav-link" href="/logout">Logout</a>
+    </div>
+</header>
+
+<div class="container">
+
+    <div class="back-bar">
+        <a href="/dashboard" class="back-link">← Back to Dashboard</a>
+        <span style="color:#718496; font-size:14px;">Genetic Risk Profile</span>
+    </div>
+
+    <div class="header-box">
+        <div>
+            <h2>Genetic & Hereditary History</h2>
+            <p>Assess predisposition risks, inherited chromosome conditions, and carrier statuses.</p>
+        </div>
+        <div style="font-size: 14px; color: #155985; font-weight: bold;">
+            Patient: {{ patient.full_name }} (ID: P{{ "%05d"|format(patient.id|int) }})
+        </div>
+    </div>
+
+    <div class="layout-grid">
+
+        <!-- Genetic Records List -->
+        <div>
+            {% if genetics %}
+            <div class="card-list">
+                {% for item in genetics %}
+                <div class="genetic-card">
+                    <div class="genetic-card-top">
+                        <div class="condition-title">
+                            <span>🧬</span> {{ item.condition_title }}
+                        </div>
+                        <span class="risk-badge risk-{{ item.risk_level }}">{{ item.risk_level }} Risk</span>
+                    </div>
+
+                    <div class="pattern-info">
+                        Pattern: {{ item.inheritance_pattern or 'Unknown' }} • Carrier Status: {{ item.carrier_status or 'Not Screened' }}
+                    </div>
+
+                    <div class="affected-line">
+                        <strong>Affected Relatives:</strong> {{ item.affected_relatives or 'None reported' }}
+                    </div>
+
+                    {% if item.notes %}
+                    <div style="font-size: 13px; color: #555; background: #f9fcfe; padding: 10px 14px; border-radius: 8px; margin-top: 6px;">
+                        💡 {{ item.notes }}
+                    </div>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="empty-state">
+                <div style="font-size: 40px; margin-bottom: 10px;">🧬</div>
+                <h3>No Genetic Conditions Logged Yet</h3>
+                <p>Record known hereditary markers or family genetic risks using the form.</p>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Add Genetic Condition Form -->
+        <div class="form-card">
+            <h3>+ Log Genetic Condition</h3>
+            <form action="/genetic-history" method="POST">
+                <div class="form-group">
+                    <label>Condition Title *</label>
+                    <input type="text" name="condition_title" placeholder="e.g. Familial Hypercholesterolemia, Hemophilia" required>
+                </div>
+
+                <div class="form-group">
+                    <label>Inheritance Pattern</label>
+                    <select name="inheritance_pattern">
+                        <option value="Autosomal Dominant">Autosomal Dominant</option>
+                        <option value="Autosomal Recessive">Autosomal Recessive</option>
+                        <option value="X-Linked">X-Linked</option>
+                        <option value="Mitochondrial">Mitochondrial</option>
+                        <option value="Complex / Polygenic">Complex / Polygenic</option>
+                        <option value="Unknown">Unknown</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>Affected Relatives</label>
+                    <input type="text" name="affected_relatives" placeholder="e.g. Grandfather, Aunt, Siblings">
+                </div>
+
+                <div class="form-group">
+                    <label>Carrier Status</label>
+                    <select name="carrier_status">
+                        <option value="Confirmed Carrier">Confirmed Carrier</option>
+                        <option value="Not a Carrier">Not a Carrier</option>
+                        <option value="Suspected / Unscreened">Suspected / Unscreened</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>Risk Level Assessment</label>
+                    <select name="risk_level">
+                        <option value="Low">Low Risk</option>
+                        <option value="Moderate" selected>Moderate Risk</option>
+                        <option value="High">High Risk</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>Physician / Geneticist Notes</label>
+                    <textarea name="notes" placeholder="Recommended screening intervals, preventative tests..."></textarea>
+                </div>
+
+                <button type="submit" class="btn-primary" style="width: 100%; border-radius: 10px; margin-top: 10px;">
+                    Save Genetic Marker
+                </button>
+            </form>
+        </div>
+
+    </div>
+
+</div>
+
+<footer>
+    ♡ Medicare Healthcare Management System • Genetic & Hereditary Mapping
+</footer>
+
+</body>
+</html>
