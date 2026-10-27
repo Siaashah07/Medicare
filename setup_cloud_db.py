@@ -25,7 +25,7 @@ def setup_cloud_database(database_url):
         conn = psycopg2.connect(database_url, connect_timeout=10)
         conn.autocommit = True
         cur = conn.cursor()
-        print("  ✓ Connected successfully!")
+        print("  [+] Connected successfully!")
     except Exception as e:
         print(f"  [!] Failed to connect to database: {e}")
         return False
@@ -36,7 +36,7 @@ def setup_cloud_database(database_url):
         with open(schema_file, "r", encoding="utf-8") as f:
             sql_script = f.read()
         cur.execute(sql_script)
-        print("  ✓ Schema tables, foreign keys, and indexes created successfully!")
+        print("  [+] Schema tables, foreign keys, and indexes created successfully!")
     except Exception as e:
         print(f"  [!] Notice during schema application: {e}")
 
@@ -44,15 +44,15 @@ def setup_cloud_database(database_url):
     try:
         cur.execute("SELECT email, role, is_approved FROM users")
         users = cur.fetchall()
-        print("  ✓ Seeded User Accounts in Cloud DB:")
+        print("  [+] Seeded User Accounts in Cloud DB:")
         for u in users:
-            print(f"    • {u[0]} (Role: {u[1]}, Approved: {u[2]})")
+            print(f"    - {u[0]} (Role: {u[1]}, Approved: {u[2]})")
 
         cur.execute("SELECT id, full_name, blood_group FROM patients")
         patients = cur.fetchall()
-        print("  ✓ Seeded Patients:")
+        print("  [+] Seeded Patients:")
         for p in patients:
-            print(f"    • P{p[0]:05d} - {p[1]} (Blood: {p[2]})")
+            print(f"    - P{p[0]:05d} - {p[1]} (Blood: {p[2]})")
     except Exception as e:
         print(f"  [!] Error verifying seed data: {e}")
 
@@ -69,7 +69,7 @@ def setup_cloud_database(database_url):
         lines.insert(0, f"DATABASE_URL={database_url}\n")
         with open(env_file, "w", encoding="utf-8") as f:
             f.writelines(lines)
-        print("  ✓ Updated .env file successfully!")
+        print("  [+] Updated .env file successfully!")
     except Exception as e:
         print(f"  [!] Error writing .env: {e}")
 
@@ -77,7 +77,7 @@ def setup_cloud_database(database_url):
     conn.close()
 
     print("\n" + "=" * 65)
-    print("🎉 CLOUD DATABASE PROVISIONING COMPLETE!")
+    print("SUCCESS: CLOUD DATABASE PROVISIONING COMPLETE!")
     print("Your Medicare project is now actively connected to your cloud PostgreSQL database.")
     print("=" * 65 + "\n")
     return True
