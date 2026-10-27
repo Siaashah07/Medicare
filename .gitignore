@@ -7,8 +7,10 @@ __pycache__/
 .env
 .env.local
 
-# Local SQLite databases (Medicare uses Cloud MySQL in production)
+# Local SQLite databases
 *.db
+*.db-wal
+*.db-shm
 *.sqlite3
 
 # Operating System Files

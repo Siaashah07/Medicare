@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Doctor Portal - Medicare</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif; background: #f6fbfb; color: #123f73; min-height: 100vh; }
+        header {
+            padding: 18px 6%; background: white; display: flex; justify-content: space-between;
+            align-items: center; box-shadow: 0 3px 15px rgba(0,0,0,0.05); position: sticky; top: 0; z-index: 100;
+        }
+        .logo { display: flex; align-items: center; gap: 10px; text-decoration: none; color: #123f73; }
+        .logo-icon {
+            width: 44px; height: 44px; border-radius: 50%; background: #188774; color: white;
+            display: flex; align-items: center; justify-content: center; font-size: 22px;
+        }
+        .logo h1 { font-size: 20px; }
+        .badge-doc {
+            background: #eaf8f1; color: #188774; padding: 4px 12px; border-radius: 12px;
+            font-size: 13px; font-weight: bold; margin-left: 10px;
+        }
+        .nav-links { display: flex; gap: 18px; align-items: center; }
+        .nav-link { color: #155985; text-decoration: none; font-weight: 600; font-size: 14px; }
+        
+        .container { width: 92%; max-width: 1100px; margin: 30px auto 60px auto; }
+
+        .doctor-banner {
+            background: linear-gradient(135deg, #0d5c4f 0%, #188774 100%);
+            padding: 32px 35px; border-radius: 20px; color: white; margin-bottom: 30px;
+            box-shadow: 0 8px 24px rgba(24, 135, 116, 0.2);
+            display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px;
+        }
+        .doctor-banner h2 { font-size: 24px; margin-bottom: 6px; }
+        .doctor-banner p { font-size: 14px; opacity: 0.9; }
+        .doc-badge-pill {
+            background: rgba(255,255,255,0.2); padding: 8px 16px; border-radius: 20px;
+            font-size: 13px; font-weight: bold; border: 1px solid rgba(255,255,255,0.3);
+        }
+
+        .alert{
+            padding:12px 18px; border-radius:10px; margin-bottom:20px; font-size:13.5px;
+        }
+        .alert-success{ background:#eaf8f1; color:#188774; border:1px solid #c9eee0; }
+
+        .patient-table-card {
+            background: white; border-radius: 20px; padding: 28px;
+            box-shadow: 0 4px 18px rgba(0,0,0,0.04); overflow-x: auto; border: 1px solid #e7f0f6;
+        }
+        .table-header {
+            display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;
+        }
+        .table-header h3 { color: #155985; font-size: 18px; }
+
+        table { width: 100%; border-collapse: collapse; text-align: left; }
+        th {
+            background: #f8fbfe; color: #155985; padding: 14px 16px; font-size: 13px;
+            text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 2px solid #eef3f7;
+        }
+        td {
+            padding: 16px; border-bottom: 1px solid #f0f4f7; font-size: 14px; vertical-align: middle;
+        }
+        tr:hover td { background: #fbfdff; }
+
+        .patient-badge-id {
+            background: #eaf6ff; color: #155985; font-weight: bold; padding: 4px 10px;
+            border-radius: 8px; font-family: monospace; font-size: 13px;
+        }
+        .blood-badge {
+            background: #ffebee; color: #c62828; font-weight: bold; padding: 4px 8px;
+            border-radius: 8px; font-size: 12px;
+        }
+
+        .btn-action {
+            background: #188774; color: white; text-decoration: none; padding: 8px 14px;
+            border-radius: 10px; font-weight: bold; font-size: 12.5px; transition: 0.2s;
+            display: inline-flex; align-items: center; gap: 4px;
+        }
+        .btn-action:hover { background: #116859; }
+
+        .btn-secondary {
+            background: #eaf6ff; color: #155985; text-decoration: none; padding: 8px 12px;
+            border-radius: 10px; font-weight: bold; font-size: 12.5px; margin-left: 6px;
+        }
+        .btn-secondary:hover { background: #d7ecfc; }
+
+        .empty-state {
+            text-align: center; padding: 40px 20px; color: #718496;
+        }
+        .empty-state-icon { font-size: 40px; margin-bottom: 10px; }
+
+        footer { text-align: center; padding: 30px; color: #718496; font-size: 13px; }
+    </style>
+</head>
+<body>
+
+<header>
+    <a href="/doctor-dashboard" class="logo">
+        <div class="logo-icon">👨‍⚕️</div>
+        <h1>Medicare</h1>
+        <span class="badge-doc">Doctor Portal</span>
+    </a>
+    <div class="nav-links">
+        <span style="font-size:13.5px; color:#60798e;">Signed in as <strong>{{ doctor.full_name if doctor else session.get('user_name') }}</strong></span>
+        <a class="nav-link" href="/logout" style="color: #d9534f; font-weight:bold;">Sign Out</a>
+    </div>
+</header>
+
+<div class="container">
+
+    <!-- FLASH MESSAGES -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        {% for category, message in messages %}
+          <div class="alert alert-{{ 'error' if category == 'error' else 'success' }}">
+            {{ message }}
+          </div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+
+    <div class="doctor-banner">
+        <div>
+            <h2>Welcome, {{ doctor.full_name if doctor else 'Doctor' }}</h2>
+            <p>{{ doctor.specialization if doctor and doctor.specialization else 'General Medicine' }} • License: {{ doctor.license_number if doctor and doctor.license_number else 'Verified' }}</p>
+        </div>
+        <div class="doc-badge-pill">
+            ✓ Authorized Clinical Practitioner
+        </div>
+    </div>
+
+    <div class="patient-table-card">
+        <div class="table-header">
+            <h3>Assigned Patients ({{ patients|length }})</h3>
+            <span style="font-size: 13px; color: #60798e;">🔒 Privacy Protected: You only have access to patients assigned under your medical care.</span>
+        </div>
+
+        {% if patients %}
+        <table>
+            <thead>
+                <tr>
+                    <th>Patient ID</th>
+                    <th>Full Name</th>
+                    <th>Blood</th>
+                    <th>Age / Gender</th>
+                    <th>Contact Phone</th>
+                    <th>Assigned Notes</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for p in patients %}
+                <tr>
+                    <td><span class="patient-badge-id">P{{ "%05d"|format(p.id) }}</span></td>
+                    <td><strong>{{ p.full_name }}</strong></td>
+                    <td><span class="blood-badge">{{ p.blood_group or 'Unknown' }}</span></td>
+                    <td>{{ p.age or 'N/A' }} yrs / {{ p.gender or 'N/A' }}</td>
+                    <td>{{ p.mobile }}</td>
+                    <td style="color: #60798e; font-size: 13px;">{{ p.assignment_notes or 'Regular clinical review' }}</td>
+                    <td>
+                        <a href="/health-profile/{{ p.id }}" class="btn-action">View Profile</a>
+                        <a href="/medical-records?patient_id={{ p.id }}" class="btn-secondary">Medical Records</a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <div class="empty-state">
+            <div class="empty-state-icon">📋</div>
+            <p><strong>No patients are currently assigned to your doctor queue.</strong></p>
+            <p style="font-size: 13px; margin-top: 6px;">Contact Hospital Administration to assign registered patients to your clinical roster.</p>
+        </div>
+        {% endif %}
+    </div>
+
+</div>
+
+<footer>
+    Medicare Hospital Information System • End-to-End Role-Based Access Control Active
+</footer>
+
+</body>
+</html>

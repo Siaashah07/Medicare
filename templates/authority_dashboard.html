@@ -6,51 +6,53 @@
     <title>Authority & Medical Officer Portal - Medicare</title>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
-        body { font-family: Arial, sans-serif; background: #f6fbfb; color: #123f73; min-height: 100vh; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif; background: #f6fbfb; color: #123f73; min-height: 100vh; }
         header {
-            padding: 20px 6%; background: white; display: flex; justify-content: space-between;
+            padding: 18px 6%; background: white; display: flex; justify-content: space-between;
             align-items: center; box-shadow: 0 3px 15px rgba(0,0,0,0.06); position: sticky; top: 0; z-index: 100;
         }
         .logo { display: flex; align-items: center; gap: 10px; text-decoration: none; color: #123f73; }
         .logo-icon {
             width: 44px; height: 44px; border-radius: 50%; background: #6a1b9a; color: white;
-            display: flex; align-items: center; justify-content: center; font-size: 24px;
+            display: flex; align-items: center; justify-content: center; font-size: 22px;
         }
-        .logo h1 { font-size: 22px; }
+        .logo h1 { font-size: 20px; }
         .badge-auth {
-            background: #f3efff; color: #6a1b9a; padding: 5px 12px; border-radius: 12px;
+            background: #f3efff; color: #6a1b9a; padding: 4px 12px; border-radius: 12px;
             font-size: 13px; font-weight: bold; margin-left: 10px;
         }
         .nav-links { display: flex; gap: 18px; align-items: center; }
         .nav-link { color: #155985; text-decoration: none; font-weight: 600; font-size: 14px; }
-        .container { width: 92%; max-width: 1100px; margin: 35px auto 60px auto; }
+        .container { width: 92%; max-width: 1100px; margin: 30px auto 60px auto; }
 
         .search-banner {
             background: linear-gradient(135deg, #4a148c 0%, #6a1b9a 60%, #8e24aa 100%);
-            padding: 35px 40px; border-radius: 24px; color: white; margin-bottom: 30px;
+            padding: 30px 35px; border-radius: 20px; color: white; margin-bottom: 30px;
             box-shadow: 0 10px 25px rgba(106, 27, 154, 0.2);
+            display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px;
         }
-        .search-banner h2 { font-size: 26px; margin-bottom: 8px; }
-        .search-banner p { font-size: 14px; opacity: 0.9; margin-bottom: 20px; }
+        .search-banner h2 { font-size: 24px; margin-bottom: 6px; }
+        .search-banner p { font-size: 13.5px; opacity: 0.9; }
 
         .search-box {
-            display: flex; gap: 12px; max-width: 650px;
+            display: flex; gap: 10px; max-width: 550px; width: 100%;
         }
         .search-box input {
-            flex: 1; padding: 14px 20px; border-radius: 25px; border: none; font-size: 15px; outline: none;
+            flex: 1; padding: 12px 18px; border-radius: 25px; border: none; font-size: 14px; outline: none;
         }
         .search-box button {
-            background: #35aa9a; color: white; border: none; padding: 14px 26px;
-            border-radius: 25px; font-weight: bold; font-size: 14px; cursor: pointer; transition: 0.2s;
+            background: #35aa9a; color: white; border: none; padding: 12px 22px;
+            border-radius: 25px; font-weight: bold; font-size: 13.5px; cursor: pointer; transition: 0.2s;
         }
         .search-box button:hover { background: #2b8b7e; }
 
-        .patient-table-card {
-            background: white; border-radius: 20px; padding: 30px;
-            box-shadow: 0 4px 18px rgba(0,0,0,0.04); overflow-x: auto;
+        .section-card {
+            background: white; border-radius: 20px; padding: 28px;
+            box-shadow: 0 4px 18px rgba(0,0,0,0.04); overflow-x: auto; margin-bottom: 30px;
+            border: 1px solid #e7edf3;
         }
         .table-header {
-            display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;
+            display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px;
         }
         .table-header h3 { color: #155985; font-size: 18px; }
 
@@ -60,7 +62,7 @@
             text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 2px solid #eef3f7;
         }
         td {
-            padding: 16px; border-bottom: 1px solid #f0f4f7; font-size: 14px; vertical-align: middle;
+            padding: 15px 16px; border-bottom: 1px solid #f0f4f7; font-size: 14px; vertical-align: middle;
         }
         tr:hover td { background: #fbfdff; }
 
@@ -73,120 +75,263 @@
             border-radius: 8px; font-size: 12px;
         }
 
+        .status-badge-active {
+            background: #eaf8f1; color: #188774; padding: 4px 10px; border-radius: 12px;
+            font-size: 12px; font-weight: bold; display: inline-block;
+        }
+        .status-badge-pending {
+            background: #fff8e6; color: #b45309; padding: 4px 10px; border-radius: 12px;
+            font-size: 12px; font-weight: bold; display: inline-block;
+        }
+
+        .btn-toggle-approve {
+            padding: 6px 14px; border-radius: 8px; border: none; font-weight: bold; font-size: 12px;
+            cursor: pointer; transition: 0.2s;
+        }
+        .btn-approve { background: #188774; color: white; }
+        .btn-revoke { background: #fbebee; color: #c62828; border: 1px solid #ffcdd2; }
+
         .btn-view {
-            background: #155985; color: white; text-decoration: none; padding: 8px 16px;
-            border-radius: 12px; font-weight: bold; font-size: 12px; transition: 0.2s;
-            display: inline-flex; align-items: center; gap: 4px;
+            background: #155985; color: white; text-decoration: none; padding: 7px 14px;
+            border-radius: 8px; font-weight: bold; font-size: 12px;
         }
         .btn-view:hover { background: #0e4265; }
 
-        .btn-qr-small {
-            background: #35aa9a; color: white; text-decoration: none; padding: 8px 14px;
-            border-radius: 12px; font-weight: bold; font-size: 12px; transition: 0.2s;
-            display: inline-flex; align-items: center; gap: 4px;
-        }
-        .btn-qr-small:hover { background: #2b8b7e; }
-
-        footer { text-align: center; padding: 30px; color: #718496; font-size: 14px; }
+        footer { text-align: center; padding: 30px; color: #718496; font-size: 13.5px; }
     </style>
 </head>
 <body>
 
 <header>
-    <a href="/" class="logo">
-        <div class="logo-icon">🏥</div>
+    <a href="/authority-dashboard" class="logo">
+        <div class="logo-icon">🏛️</div>
         <h1>Medicare</h1>
         <span class="badge-auth">Hospital Authority</span>
     </a>
     <div class="nav-links">
-        <a class="nav-link" href="/dashboard">Patient View</a>
-        <a class="nav-link" href="/registration">+ Register New</a>
-        <a class="nav-link" href="/logout" style="color: #d9534f;">Logout</a>
+        <span style="font-size:13.5px; color:#60798e;">Officer: <strong>{{ session.get('user_name', 'Administrator') }}</strong></span>
+        <button onclick="toggleOnboardForm()" style="background:#6a1b9a; color:white; border:none; padding:7px 14px; border-radius:12px; font-weight:bold; font-size:12.5px; cursor:pointer;">+ Onboard Officer</button>
+        <a class="nav-link" href="/registration">+ Register Patient</a>
+        <a class="nav-link" href="/logout" style="color: #d9534f; font-weight:bold;">Sign Out</a>
     </div>
 </header>
 
 <div class="container">
 
-    <div class="search-banner">
-        <h2>🏥 Clinical Directory & Emergency QR Lookup</h2>
-        <p>Medical officers can search registered patients by ID, full name, or phone number to review allergies and medical histories.</p>
-
-        <form action="/authority-dashboard" method="GET" class="search-box">
-            <input type="text" name="q" placeholder="Enter Patient ID (e.g. P00001), Name, or Mobile..." value="{{ query }}">
-            <button type="submit">🔍 Search Directory</button>
+    <!-- HIDDEN ONBOARD AUTHORITY FORM -->
+    <div id="onboardSection" class="section-card" style="display:none; background:#faf7ff; border:1px solid #e1d4fa;">
+        <div class="table-header">
+            <h3>🏛️ Onboard New Hospital Authority Officer</h3>
+            <span style="color:#6a1b9a; font-size:13px; font-weight:bold; cursor:pointer;" onclick="toggleOnboardForm()">✕ Close</span>
+        </div>
+        <form action="/api/onboard-authority" method="POST" style="display:grid; grid-template-columns:repeat(3, 1fr) auto; gap:12px; align-items:flex-end;">
+            <div>
+                <label style="display:block; font-size:12px; font-weight:bold; color:#6a1b9a; margin-bottom:4px;">Full Name</label>
+                <input type="text" name="full_name" placeholder="Dr. Sarah Jenkins" required style="width:100%; padding:10px; border-radius:8px; border:1px solid #dcd0f5;">
+            </div>
+            <div>
+                <label style="display:block; font-size:12px; font-weight:bold; color:#6a1b9a; margin-bottom:4px;">Authority Email</label>
+                <input type="email" name="email" placeholder="sarah.jenkins@medicare.io" required style="width:100%; padding:10px; border-radius:8px; border:1px solid #dcd0f5;">
+            </div>
+            <div>
+                <label style="display:block; font-size:12px; font-weight:bold; color:#6a1b9a; margin-bottom:4px;">Initial Password</label>
+                <input type="password" name="password" placeholder="SecurePassword2026!" required minlength="8" style="width:100%; padding:10px; border-radius:8px; border:1px solid #dcd0f5;">
+            </div>
+            <button type="submit" style="background:#6a1b9a; color:white; border:none; padding:11px 20px; border-radius:8px; font-weight:bold; cursor:pointer;">
+                Create Account
+            </button>
         </form>
     </div>
 
-    <div class="patient-table-card">
-        <div class="table-header">
-            <h3>Registered Patient Records ({{ patients|length }})</h3>
-            <a href="/registration" style="color: #155985; font-weight: bold; text-decoration: none; font-size: 14px;">+ Add New Patient</a>
+    <div class="search-banner">
+        <div>
+            <h2>Hospital Authority Command Center</h2>
+            <p>Role-based access monitoring, doctor authorization verification, and patient directory.</p>
         </div>
 
-        {% if patients %}
+        <form action="/authority-dashboard" method="GET" class="search-box">
+            <input type="text" name="q" placeholder="Search by Patient ID, Name, or Mobile..." value="{{ query }}">
+            <button type="submit">Search</button>
+        </form>
+    </div>
+
+    <!-- 1. DOCTOR PRACTICE VERIFICATION & APPROVALS -->
+    <div class="section-card">
+        <div class="table-header">
+            <h3>Medical Staff & Doctor Verification ({{ doctors|length }})</h3>
+            <span style="font-size:13px; color:#718496;">Doctors must be approved before they can log in to patient records.</span>
+        </div>
+
+        {% if doctors %}
         <table>
             <thead>
                 <tr>
-                    <th>Patient ID</th>
-                    <th>Name</th>
-                    <th>Age / Gender</th>
-                    <th>Blood</th>
-                    <th>Emergency Contact</th>
-                    <th>Critical Allergies</th>
-                    <th>Actions</th>
+                    <th>Doctor Name</th>
+                    <th>Email Address</th>
+                    <th>Specialization</th>
+                    <th>Medical License</th>
+                    <th>Status</th>
+                    <th>Approval Action</th>
                 </tr>
             </thead>
             <tbody>
-                {% for p in patients %}
+                {% for d in doctors %}
                 <tr>
+                    <td><strong>{{ d.full_name }}</strong></td>
+                    <td><code>{{ d.email }}</code></td>
+                    <td>{{ d.specialization or 'General Practitioner' }}</td>
+                    <td>{{ d.license_number or 'MCI-VERIFIED' }}</td>
                     <td>
-                        <span class="patient-badge-id">P{{ "%05d"|format(p.id|int) }}</span>
-                    </td>
-                    <td>
-                        <strong>{{ p.full_name }}</strong><br>
-                        <small style="color: #718496;">{{ p.mobile }}</small>
-                    </td>
-                    <td>{{ p.age or '--' }} yrs • {{ p.gender or 'N/A' }}</td>
-                    <td>
-                        {% if p.blood_group %}
-                        <span class="blood-badge">{{ p.blood_group }}</span>
+                        {% if d.is_approved %}
+                        <span class="status-badge-active" id="badge-{{ d.id }}">✓ Active / Approved</span>
                         {% else %}
-                        --
+                        <span class="status-badge-pending" id="badge-{{ d.id }}">⏳ Pending Approval</span>
                         {% endif %}
                     </td>
                     <td>
-                        {{ p.emergency_name or 'N/A' }}<br>
-                        <small style="color: #c62828; font-weight: bold;">{{ p.emergency_number or '' }}</small>
-                    </td>
-                    <td style="max-width: 220px; font-size: 13px; color: #444;">
-                        {{ p.allergies or 'None reported' }}
-                    </td>
-                    <td>
-                        <div style="display: flex; gap: 6px;">
-                            <a href="/health-profile/{{ p.id }}" class="btn-view">
-                                👤 Profile
-                            </a>
-                            <a href="/qr/{{ p.id }}?download=1" class="btn-qr-small" title="Download QR Code">
-                                📱 QR
-                            </a>
-                        </div>
+                        <button 
+                            class="btn-toggle-approve {{ 'btn-revoke' if d.is_approved else 'btn-approve' }}" 
+                            id="btn-{{ d.id }}"
+                            onclick="toggleDoctorApproval({{ d.id }})"
+                        >
+                            {{ 'Revoke Access' if d.is_approved else 'Approve Doctor' }}
+                        </button>
                     </td>
                 </tr>
                 {% endfor %}
             </tbody>
         </table>
         {% else %}
-        <div style="text-align: center; padding: 40px; color: #718496;">
-            No patient matching "{{ query }}" found. Try searching by name or patient ID.
+        <p style="color:#718496; font-size:13.5px;">No doctor accounts currently registered.</p>
+        {% endif %}
+    </div>
+
+    <!-- 2. CLINICAL PATIENT DIRECTORY -->
+    <div class="section-card">
+        <div class="table-header">
+            <h3>Registered Patients Directory ({{ patients|length }})</h3>
+            <a href="/registration" style="color: #155985; font-weight: bold; text-decoration: none; font-size: 13.5px;">+ Register Patient</a>
         </div>
+
+        {% if patients %}
+        <table>
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Patient Full Name</th>
+                    <th>Blood</th>
+                    <th>Age / Gender</th>
+                    <th>Emergency Contact</th>
+                    <th>Recorded Allergies</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for p in patients %}
+                <tr>
+                    <td><span class="patient-badge-id">P{{ "%05d"|format(p.id|int) }}</span></td>
+                    <td>
+                        <strong>{{ p.full_name }}</strong><br>
+                        <small style="color:#718496;">{{ p.mobile }}</small>
+                    </td>
+                    <td>
+                        {% if p.blood_group %}<span class="blood-badge">{{ p.blood_group }}</span>{% else %}--{% endif %}
+                    </td>
+                    <td>{{ p.age or '--' }} yrs • {{ p.gender or 'N/A' }}</td>
+                    <td>
+                        {{ p.emergency_name or 'N/A' }}<br>
+                        <small style="color: #c62828; font-weight: bold;">{{ p.emergency_number or '' }}</small>
+                    </td>
+                    <td style="max-width: 200px; font-size: 13px;">{{ p.allergies or 'None reported' }}</td>
+                    <td>
+                        <a href="/health-profile/{{ p.id }}" class="btn-view">Inspect Profile</a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <div style="text-align: center; padding: 30px; color: #718496;">
+            No patient records found matching query.
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- 3. SECURITY AUDIT TRAIL -->
+    <div class="section-card">
+        <div class="table-header">
+            <h3>Recent Security Audit Events</h3>
+            <span style="font-size:13px; color:#718496;">Real-time tamper-evident event log.</span>
+        </div>
+
+        {% if recent_audits %}
+        <table>
+            <thead>
+                <tr>
+                    <th>Timestamp</th>
+                    <th>Event Action</th>
+                    <th>User ID / Role</th>
+                    <th>Details</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for log in recent_audits %}
+                <tr>
+                    <td style="color:#718496; font-size:13px; white-space:nowrap;">{{ log.created_at }}</td>
+                    <td><code>{{ log.action }}</code></td>
+                    <td>{{ log.user_role or 'Anonymous' }} (ID: {{ log.user_id or 'N/A' }})</td>
+                    <td style="color:#444; font-size:13px;">{{ log.details or '-' }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <p style="color:#718496; font-size:13.5px;">No audit logs recorded yet.</p>
         {% endif %}
     </div>
 
 </div>
 
 <footer>
-    ♡ Medicare Healthcare Management System • Doctor & Authority Portal
+    Medicare Hospital Information System • End-to-End Role-Based Access Control Active
 </footer>
+
+<script>
+function toggleOnboardForm() {
+    const el = document.getElementById('onboardSection');
+    el.style.display = el.style.display === 'none' ? 'block' : 'none';
+}
+
+function toggleDoctorApproval(doctorId) {
+    fetch('/api/approve-doctor/' + doctorId, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
+    })
+    .then(res => res.json())
+    .then(data => {
+        if(data.success) {
+            const badge = document.getElementById('badge-' + doctorId);
+            const btn = document.getElementById('btn-' + doctorId);
+            if(data.is_approved) {
+                badge.className = 'status-badge-active';
+                badge.innerText = '✓ Active / Approved';
+                btn.className = 'btn-toggle-approve btn-revoke';
+                btn.innerText = 'Revoke Access';
+            } else {
+                badge.className = 'status-badge-pending';
+                badge.innerText = '⏳ Pending Approval';
+                btn.className = 'btn-toggle-approve btn-approve';
+                btn.innerText = 'Approve Doctor';
+            }
+        } else {
+            alert('Failed to update status: ' + (data.error || 'Unknown error'));
+        }
+    })
+    .catch(err => {
+        alert('Server request failed: ' + err);
+    });
+}
+</script>
 
 </body>
 </html>

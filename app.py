@@ -6,83 +6,135 @@ import sys
 import threading
 import traceback
 import webbrowser
-from flask import Flask, flash, jsonify, redirect, render_template, request, send_file, session, url_for
+from datetime import datetime, timedelta
+from functools import wraps
+from flask import (
+    Flask, flash, jsonify, redirect, render_template, request,
+    send_file, session, url_for, abort
+)
 import qrcode
-from db import get_connection
+from werkzeug.security import check_password_hash, generate_password_hash
+
+from db import get_connection, init_db
 from ai_assistant import ai_assistant
+from mailer import send_verification_email
+import auth_service
 
 app = Flask(__name__)
+
+# Session and cookie security configuration
 app.secret_key = os.environ.get("SECRET_KEY", "medicare_secure_session_key_2026")
+app.config.update(
+    SESSION_COOKIE_HTTPONLY=True,
+    SESSION_COOKIE_SAMESITE="Lax",
+    SESSION_COOKIE_SECURE=(os.environ.get("FLASK_ENV") == "production" or bool(os.environ.get("RENDER"))),
+    PERMANENT_SESSION_LIFETIME=timedelta(hours=2)
+)
 
-DEFAULT_PATIENT = {
-    "id": 1,
-    "full_name": "Eleanor Vance",
-    "password": "password123",
-    "dob": "1994-08-14",
-    "age": 32,
-    "gender": "Female",
-    "blood_group": "O+",
-    "marital_status": "Married",
-    "occupation": "Software Engineer",
-    "mobile": "+91 98765 43210",
-    "alternate_mobile": "+91 91234 56789",
-    "email": "eleanor.vance@medicare.io",
-    "address": "42 Evergreen Heights, Sector 15",
-    "city": "Bengaluru",
-    "state": "Karnataka",
-    "pin_code": "560001",
-    "emergency_name": "Thomas Vance",
-    "emergency_relationship": "Spouse",
-    "emergency_number": "+91 99887 76655",
-    "allergies": "Penicillin (Moderate rash), Peanuts (Severe anaphylaxis risk)",
-    "existing_conditions": "Mild Bronchial Asthma, Type-2 Diabetes (Controlled)",
-    "current_medications": "Metformin 500mg (Daily), Salbutamol Inhaler (PRN / As needed)"
-}
+# Ensure database tables exist upon start
+try:
+    init_db()
+except Exception as _db_init_err:
+    print(f"[!] Database startup notice: {_db_init_err}")
 
 
-def get_current_patient(patient_id=None):
-    """Retrieve patient record by ID or fallback to session/latest patient with guaranteed non-None fallback."""
+# ============================================================================
+# AUTHORIZATION DECORATORS & ACCESS CONTROL HELPERS
+# ============================================================================
+
+def login_required(f):
+    """Requires user to be authenticated in session."""
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if not session.get("logged_in"):
+            if request.path.startswith("/api/") or request.is_json:
+                return jsonify({"error": "Authentication required", "status": 401}), 401
+            flash("Please sign in to access your Medicare portal.", "error")
+            return redirect(url_for("login"))
+        return f(*args, **kwargs)
+    return decorated_function
+
+
+def role_required(*allowed_roles):
+    """Restricts route to specified roles (e.g. 'doctor', 'authority', 'patient')."""
+    def decorator(f):
+        @wraps(f)
+        def decorated_function(*args, **kwargs):
+            if not session.get("logged_in"):
+                if request.path.startswith("/api/") or request.is_json:
+                    return jsonify({"error": "Authentication required", "status": 401}), 401
+                flash("Please sign in to access this portal.", "error")
+                return redirect(url_for("login"))
+
+            user_role = session.get("role")
+            if user_role not in allowed_roles:
+                auth_service.log_audit_event(
+                    action="UNAUTHORIZED_PORTAL_ACCESS_ATTEMPT",
+                    user_id=session.get("user_id") or session.get("patient_id"),
+                    user_role=user_role,
+                    details=f"Attempted access to {request.path} (Allowed: {allowed_roles})"
+                )
+                if request.path.startswith("/api/") or request.is_json:
+                    return jsonify({"error": "Forbidden: Insufficient privileges", "status": 403}), 403
+                
+                flash(f"Access Denied: You do not have permissions for the {request.path} area.", "error")
+                if user_role == "doctor":
+                    return redirect(url_for("doctor_dashboard"))
+                elif user_role == "authority":
+                    return redirect(url_for("authority_dashboard"))
+                else:
+                    return redirect(url_for("dashboard"))
+            return f(*args, **kwargs)
+        return decorated_function
+    return decorator
+
+
+def verify_patient_access(patient_id):
+    """
+    Enforces Strict Patient Data Privacy & IDOR Prevention:
+    - Unauthenticated: 401
+    - Patient: Can ONLY access their own patient_id (403 otherwise)
+    - Doctor: Can ONLY access patients assigned to them (403 otherwise)
+    - Authority: Allowed (Audit monitored)
+    """
+    is_allowed, reason, status_code = auth_service.can_user_access_patient(session, patient_id)
+    if not is_allowed:
+        auth_service.log_audit_event(
+            action="PATIENT_IDOR_BLOCKED",
+            user_id=session.get("user_id") or session.get("patient_id"),
+            user_role=session.get("role"),
+            details=f"Target Patient ID: {patient_id}. Reason: {reason}"
+        )
+        if request.path.startswith("/api/") or request.is_json:
+            return False, (jsonify({"error": reason, "status": status_code}), status_code)
+        flash(reason, "error")
+        return False, (render_template("404.html", error_message=reason), status_code)
+    return True, None
+
+
+def get_patient_by_id(patient_id):
+    """Retrieve patient record by ID from database."""
     conn = get_connection()
     if not conn:
-        return dict(DEFAULT_PATIENT)
-
+        return None
     try:
-        cursor = conn.cursor(dictionary=True, buffered=True)
-        target_id = patient_id
-        if not target_id:
-            try:
-                if "patient_id" in session:
-                    target_id = session.get("patient_id")
-            except RuntimeError:
-                pass
-
-        if target_id:
-            cursor.execute("SELECT * FROM patients WHERE id = %s", (target_id,))
-            patient = cursor.fetchone()
-            if patient:
-                cursor.close()
-                conn.close()
-                return patient
-
-        # Fallback to the latest patient
-        cursor.execute("SELECT * FROM patients ORDER BY id DESC LIMIT 1")
-        patient = cursor.fetchone()
-        cursor.close()
+        cur = conn.cursor()
+        cur.execute("SELECT * FROM patients WHERE id = %s", (patient_id,))
+        p = cur.fetchone()
+        cur.close()
         conn.close()
-        if patient:
-            return patient
+        return p
     except Exception as e:
-        print(f"[!] Patient lookup fallback triggered: {e}")
+        print(f"[!] Patient retrieval error: {e}")
         try:
             conn.close()
         except Exception:
             pass
-
-    return dict(DEFAULT_PATIENT)
+        return None
 
 
 def get_base_url():
-    """Determine application public base URL dynamically (supports Render HTTPS / local dev)."""
+    """Determine application public base URL dynamically (supports Render HTTPS)."""
     env_url = os.environ.get("RENDER_EXTERNAL_URL") or os.environ.get("APP_URL")
     if env_url:
         return env_url.rstrip("/")
@@ -95,14 +147,14 @@ def get_base_url():
 
 
 def generate_qr_base64(patient):
-    """Generate scannable Emergency QR code for patient."""
+    """Generate scannable Emergency QR code for authorized patient profile."""
     if not patient:
-        patient = DEFAULT_PATIENT
+        return ""
 
     base_url = get_base_url()
-    patient_id_formatted = f"P{int(patient['id']):05d}" if patient.get("id") else "P00001"
+    patient_id_formatted = f"P{int(patient['id']):05d}"
     qr_data = (
-        f"MEDICARE EMERGENCY HEALTH ID\n"
+        f"MEDICARE SECURE HEALTH ID\n"
         f"ID: {patient_id_formatted}\n"
         f"Name: {patient.get('full_name', '')}\n"
         f"Blood: {patient.get('blood_group', 'Unknown')}\n"
@@ -110,7 +162,7 @@ def generate_qr_base64(patient):
         f"Allergies: {patient.get('allergies', 'None')}\n"
         f"Conditions: {patient.get('existing_conditions', 'None')}\n"
         f"Emergency Contact: {patient.get('emergency_name', 'N/A')} ({patient.get('emergency_relationship', '')}) - {patient.get('emergency_number', 'N/A')}\n"
-        f"Profile: {base_url}/health-profile/{patient.get('id', 1)}"
+        f"Verified Portal: {base_url}/health-profile/{patient.get('id')}"
     )
 
     qr = qrcode.QRCode(
@@ -129,120 +181,482 @@ def generate_qr_base64(patient):
     return f"data:image/png;base64,{img_b64}"
 
 
-# ------------------- CORE ROUTES -------------------
+# ============================================================================
+# DOCTOR REGISTRATION & ONBOARDING (Pending Administrative Verification)
+# ============================================================================
+
+@app.route("/doctor-registration")
+def doctor_registration_view():
+    return render_template("doctor_registration.html")
+
+
+@app.route("/doctor-register", methods=["POST"])
+def doctor_register():
+    full_name = request.form.get("full_name", "").strip()
+    email = request.form.get("email", "").strip().lower()
+    phone = request.form.get("phone", "").strip()
+    license_number = request.form.get("license_number", "").strip()
+    specialization = request.form.get("specialization", "General Medicine").strip()
+    raw_password = request.form.get("password", "").strip()
+
+    if not full_name or not email or not raw_password:
+        flash("Full name, email, and password are required.", "error")
+        return redirect(url_for("doctor_registration_view"))
+
+    conn = get_connection()
+    if not conn:
+        flash("Database connection error.", "error")
+        return redirect(url_for("doctor_registration_view"))
+
+    cur = conn.cursor()
+    # Check if email already registered
+    cur.execute("SELECT id FROM users WHERE email = %s", (email,))
+    existing = cur.fetchone()
+    if existing:
+        cur.close()
+        conn.close()
+        flash("An account with this email address already exists. Please log in.", "error")
+        return redirect(url_for("login", tab="doctor"))
+
+    password_hash = generate_password_hash(raw_password)
+    # Strictly saved as is_approved = FALSE pending Authority review
+    cur.execute("""
+        INSERT INTO users (
+            email, password_hash, role, full_name, specialization, license_number, is_approved, is_active
+        ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+    """, (email, password_hash, "doctor", full_name, specialization, license_number, False, True))
+    conn.commit()
+    cur.close()
+    conn.close()
+
+    auth_service.log_audit_event(
+        action="DOCTOR_REGISTRATION_SUBMITTED",
+        user_role="doctor",
+        details=f"Dr. {full_name} ({email}) applied with license {license_number}. Pending approval."
+    )
+
+    flash("Application submitted successfully! Your credentials have been forwarded to Hospital Administration. You will be able to sign in once approved.", "success")
+    return redirect(url_for("login", tab="doctor"))
+
+
+@app.route("/api/onboard-authority", methods=["POST"])
+@role_required("authority")
+def api_onboard_authority():
+    """Allows an approved Hospital Authority to onboard/invite another authority officer."""
+    full_name = request.form.get("full_name", "").strip()
+    email = request.form.get("email", "").strip().lower()
+    raw_password = request.form.get("password", "").strip()
+
+    if not full_name or not email or not raw_password:
+        return jsonify({"success": False, "error": "All fields are required"}), 400
+
+    conn = get_connection()
+    if not conn:
+        return jsonify({"success": False, "error": "Database error"}), 500
+
+    cur = conn.cursor()
+    cur.execute("SELECT id FROM users WHERE email = %s", (email,))
+    if cur.fetchone():
+        cur.close()
+        conn.close()
+        return jsonify({"success": False, "error": "User with this email already exists"}), 400
+
+    pw_hash = generate_password_hash(raw_password)
+    cur.execute("""
+        INSERT INTO users (email, password_hash, role, full_name, is_approved, is_active)
+        VALUES (%s, %s, %s, %s, %s, %s)
+    """, (email, pw_hash, "authority", full_name, True, True))
+    conn.commit()
+    cur.close()
+    conn.close()
+
+    auth_service.log_audit_event(
+        action="NEW_AUTHORITY_OFFICER_ONBOARDED",
+        user_id=session.get("user_id"),
+        user_role="authority",
+        details=f"Onboarded authority officer: {full_name} ({email})"
+    )
+
+    flash(f"Authority account created for {full_name} ({email}).", "success")
+    return redirect(url_for("authority_dashboard"))
+
+
+# ============================================================================
+# PUBLIC & ENTRY ROUTES
+# ============================================================================
 
 @app.route("/")
 def home():
     return render_template("intro.html")
 
 
+# ============================================================================
+# AUTHENTICATION & LOGIN WORKFLOWS (Patient, Doctor, Authority)
+# ============================================================================
+
 @app.route("/login", methods=["GET", "POST"])
 def login():
     if request.method == "POST":
-        role = request.form.get("role", "patient")
+        role = request.form.get("role", "patient").strip().lower()
 
-        if role == "authority":
-            username = request.form.get("username", "").strip()
+        # ---------------- DOCTOR LOGIN WORKFLOW ----------------
+        if role == "doctor":
+            email = request.form.get("email", "").strip().lower()
             password = request.form.get("password", "").strip()
-            auth_code = request.form.get("authority_code", "").strip()
 
-            conn = get_connection()
-            if conn:
-                cursor = conn.cursor(dictionary=True, buffered=True)
-                cursor.execute(
-                    "SELECT * FROM users WHERE username = %s AND (password = %s OR authority_code = %s)",
-                    (username, password, auth_code),
-                )
-                auth_user = cursor.fetchone()
-                cursor.close()
-                conn.close()
+            if not email or not password:
+                flash("Doctor email and password are required.", "error")
+                return redirect(url_for("login", tab="doctor"))
 
-                if auth_user or auth_code == "AUTH101":
-                    session["logged_in"] = True
-                    session["role"] = "authority"
-                    session["user_name"] = auth_user.get("full_name") if auth_user else "Dr. Alexander Wright"
-                    flash(f"Welcome, {session['user_name']}!", "success")
-                    return redirect(url_for("authority_dashboard"))
+            doctor_user, err_msg = auth_service.authenticate_user_credentials(email, password, required_role="doctor")
+            if not doctor_user:
+                flash(err_msg, "error")
+                return redirect(url_for("login", tab="doctor"))
 
-            # Fallback authority login
-            session["logged_in"] = True
-            session["role"] = "authority"
-            session["user_name"] = "Dr. Alexander Wright (Authority)"
-            flash("Logged in with Authority credentials.", "success")
-            return redirect(url_for("authority_dashboard"))
+            # Step 2: Generate short-lived verification access code & email it
+            sent, send_msg = auth_service.generate_and_dispatch_code(doctor_user, purpose="doctor_login")
+            if not sent:
+                flash(f"Security Notice: {send_msg}", "error")
+                return redirect(url_for("login", tab="doctor"))
 
+            # Stage user in pending authentication session
+            session["pending_auth"] = {
+                "user_id": doctor_user["id"],
+                "email": doctor_user["email"],
+                "role": "doctor",
+                "name": doctor_user["full_name"],
+                "purpose": "doctor_login"
+            }
+            flash(f"Access code sent to {doctor_user['email']}. Please enter the 6-digit code below.", "success")
+            return redirect(url_for("verify_code"))
+
+        # ---------------- AUTHORITY LOGIN WORKFLOW ----------------
+        elif role == "authority":
+            email = request.form.get("email", "").strip().lower()
+            password = request.form.get("password", "").strip()
+
+            if not email or not password:
+                flash("Authority email and password are required.", "error")
+                return redirect(url_for("login", tab="authority"))
+
+            auth_user, err_msg = auth_service.authenticate_user_credentials(email, password, required_role="authority")
+            if not auth_user:
+                flash(err_msg, "error")
+                return redirect(url_for("login", tab="authority"))
+
+            # Step 2: Generate short-lived verification access code & email it
+            sent, send_msg = auth_service.generate_and_dispatch_code(auth_user, purpose="authority_login")
+            if not sent:
+                flash(f"Security Notice: {send_msg}", "error")
+                return redirect(url_for("login", tab="authority"))
+
+            session["pending_auth"] = {
+                "user_id": auth_user["id"],
+                "email": auth_user["email"],
+                "role": "authority",
+                "name": auth_user["full_name"],
+                "purpose": "authority_login"
+            }
+            flash(f"Authority code sent to {auth_user['email']}. Please enter the 6-digit code below.", "success")
+            return redirect(url_for("verify_code"))
+
+        # ---------------- PATIENT LOGIN WORKFLOW ----------------
         else:
-            # Patient login with password verification
             identifier = request.form.get("identifier", "").strip()
             entered_pw = request.form.get("password", "").strip()
 
             if not identifier:
                 flash("Please enter your Patient ID, Mobile Number, or Email.", "error")
-                return redirect(url_for("login"))
+                return redirect(url_for("login", tab="patient"))
 
             conn = get_connection()
             patient = None
             if conn:
-                cursor = conn.cursor(dictionary=True, buffered=True)
+                cur = conn.cursor()
                 clean_id = identifier.upper().replace("P", "")
                 if clean_id.isdigit():
-                    cursor.execute("SELECT * FROM patients WHERE id = %s", (int(clean_id),))
-                    patient = cursor.fetchone()
+                    cur.execute("SELECT * FROM patients WHERE id = %s", (int(clean_id),))
+                    patient = cur.fetchone()
 
                 if not patient:
-                    cursor.execute("SELECT * FROM patients WHERE mobile = %s OR email = %s", (identifier, identifier))
-                    patient = cursor.fetchone()
-
-                cursor.close()
+                    cur.execute("SELECT * FROM patients WHERE mobile = %s OR email = %s", (identifier, identifier))
+                    patient = cur.fetchone()
+                cur.close()
                 conn.close()
 
             if not patient:
-                flash(f"No patient account found for '{identifier}'. You can check all accounts in the Database Manager or create a new one.", "error")
-                return redirect(url_for("login"))
+                flash("No patient account found matching your credentials.", "error")
+                return redirect(url_for("login", tab="patient"))
 
-            # Check password
-            real_pw = patient.get("password") or "medicare123"
-            if entered_pw and entered_pw != real_pw:
-                flash(f"Incorrect password for '{patient.get('full_name')}'. (Tip: Check your password in the Database Manager or click 'Forgot Password').", "error")
-                return redirect(url_for("login"))
+            # Password verification (supports both Werkzeug hash and safe fallback)
+            stored_hash = patient.get("password_hash")
+            plain_pw = patient.get("password") or "medicare123"
+            valid_pw = False
 
-            # Login successful
+            if stored_hash and check_password_hash(stored_hash, entered_pw):
+                valid_pw = True
+            elif plain_pw and plain_pw == entered_pw:
+                valid_pw = True
+                # Upgrade to secure hash in DB
+                new_hash = generate_password_hash(entered_pw)
+                c_up = get_connection()
+                if c_up:
+                    cur_u = c_up.cursor()
+                    cur_u.execute("UPDATE patients SET password_hash = %s, password = NULL WHERE id = %s", (new_hash, patient["id"]))
+                    c_up.commit()
+                    cur_u.close()
+                    c_up.close()
+
+            if not valid_pw:
+                flash("Incorrect password for patient account.", "error")
+                return redirect(url_for("login", tab="patient"))
+
+            # Establish authenticated patient session
+            session.clear()
+            session.permanent = True
             session["logged_in"] = True
             session["role"] = "patient"
-            session["patient_id"] = patient.get("id")
+            session["patient_id"] = patient["id"]
             session["user_name"] = patient.get("full_name")
+            session["email"] = patient.get("email")
+
+            auth_service.log_audit_event("PATIENT_LOGIN_SUCCESS", user_id=patient["id"], user_role="patient")
             flash(f"Welcome back, {patient.get('full_name')}!", "success")
             return redirect(url_for("dashboard"))
 
-    return render_template("login.html")
+    # GET Request: render login template with active tab
+    active_tab = request.args.get("tab", "patient")
+    return render_template("login.html", active_tab=active_tab)
+
+
+@app.route("/verify-code", methods=["GET", "POST"])
+def verify_code():
+    """Second-factor verification code confirmation page for Doctors and Authorities."""
+    pending = session.get("pending_auth")
+    if not pending:
+        flash("No login attempt in progress. Please log in first.", "error")
+        return redirect(url_for("login"))
+
+    if request.method == "POST":
+        code = request.form.get("code", "").strip()
+        purpose = pending.get("purpose")
+        email = pending.get("email")
+
+        is_valid, reason = auth_service.verify_submitted_code(email, code, purpose)
+        if not is_valid:
+            flash(reason, "error")
+            return render_template("verify_code.html", pending=pending)
+
+        # Successful code verification -> finalize authenticated session
+        role = pending["role"]
+        user_id = pending["user_id"]
+        user_name = pending["name"]
+        session.clear()
+        session.permanent = True
+        session["logged_in"] = True
+        session["role"] = role
+        session["user_id"] = user_id
+        session["user_name"] = user_name
+        session["email"] = email
+
+        auth_service.reset_failed_login(user_id, table="users")
+        auth_service.log_audit_event(
+            action=f"{role.upper()}_MFA_LOGIN_SUCCESS",
+            user_id=user_id,
+            user_role=role,
+            details=f"Successful 2FA login for {email}"
+        )
+
+        flash(f"Authenticated successfully. Welcome, {user_name}!", "success")
+        if role == "doctor":
+            return redirect(url_for("doctor_dashboard"))
+        elif role == "authority":
+            return redirect(url_for("authority_dashboard"))
+        return redirect(url_for("home"))
+
+    return render_template("verify_code.html", pending=pending)
+
+
+@app.route("/resend-code", methods=["POST"])
+def resend_code():
+    """Resend a new short-lived verification access code."""
+    pending = session.get("pending_auth")
+    if not pending:
+        flash("No pending verification session.", "error")
+        return redirect(url_for("login"))
+
+    conn = get_connection()
+    if conn:
+        cur = conn.cursor()
+        cur.execute("SELECT * FROM users WHERE id = %s", (pending["user_id"],))
+        user = cur.fetchone()
+        cur.close()
+        conn.close()
+
+        if user:
+            sent, msg = auth_service.generate_and_dispatch_code(user, purpose=pending["purpose"])
+            if sent:
+                flash(f"A new access code has been dispatched to {user['email']}.", "success")
+            else:
+                flash(f"Could not send code: {msg}", "error")
+
+    return redirect(url_for("verify_code"))
 
 
 @app.route("/logout")
 def logout():
+    role = session.get("role")
+    u_id = session.get("user_id") or session.get("patient_id")
+    if u_id:
+        auth_service.log_audit_event("USER_LOGOUT", user_id=u_id, user_role=role)
     session.clear()
+    flash("You have been signed out securely.", "success")
     return redirect(url_for("login"))
 
 
-@app.route("/dashboard")
-def dashboard():
-    patient = get_current_patient()
+# ============================================================================
+# DOCTOR PORTAL & ACTIONS
+# ============================================================================
+
+@app.route("/doctor-dashboard")
+@role_required("doctor")
+def doctor_dashboard():
+    """Doctor Portal: Displays strictly assigned patients, consultations, and medical history."""
+    doctor_id = session.get("user_id")
     conn = get_connection()
+    assigned_patients = []
+    doctor_info = None
 
+    if conn:
+        cur = conn.cursor()
+        # Fetch doctor details
+        cur.execute("SELECT * FROM users WHERE id = %s", (doctor_id,))
+        doctor_info = cur.fetchone()
+
+        # Fetch ONLY assigned patients
+        cur.execute("""
+            SELECT p.*, dpa.assigned_date, dpa.notes AS assignment_notes
+            FROM patients p
+            JOIN doctor_patient_assignments dpa ON p.id = dpa.patient_id
+            WHERE dpa.doctor_id = %s
+            ORDER BY p.id DESC
+        """, (doctor_id,))
+        assigned_patients = cur.fetchall()
+        cur.close()
+        conn.close()
+
+    return render_template("doctor_dashboard.html", doctor=doctor_info, patients=assigned_patients)
+
+
+# ============================================================================
+# AUTHORITY PORTAL & ACTIONS
+# ============================================================================
+
+@app.route("/authority-dashboard")
+@role_required("authority")
+def authority_dashboard():
+    """Authority Portal: Protected hospital overview, doctor onboarding/approval, and audit logs."""
+    query = request.args.get("q", "").strip()
+    conn = get_connection()
+    patients = []
+    doctors = []
+    recent_audits = []
+
+    if conn:
+        cur = conn.cursor()
+        # Search or list patients
+        if query:
+            clean_q = query.upper().replace("P", "")
+            cur.execute("""
+                SELECT * FROM patients
+                WHERE full_name LIKE %s OR mobile LIKE %s OR id = %s
+                ORDER BY id DESC
+            """, (f"%{query}%", f"%{query}%", int(clean_q) if clean_q.isdigit() else -1))
+        else:
+            cur.execute("SELECT * FROM patients ORDER BY id DESC")
+        patients = cur.fetchall()
+
+        # List doctor accounts for approval & status monitoring
+        cur.execute("SELECT * FROM users WHERE role = 'doctor' ORDER BY id DESC")
+        doctors = cur.fetchall()
+
+        # Fetch recent security audit logs
+        cur.execute("SELECT * FROM audit_logs ORDER BY id DESC LIMIT 20")
+        recent_audits = cur.fetchall()
+
+        cur.close()
+        conn.close()
+
+    return render_template(
+        "authority_dashboard.html",
+        patients=patients,
+        doctors=doctors,
+        recent_audits=recent_audits,
+        query=query
+    )
+
+
+@app.route("/api/approve-doctor/<int:doctor_id>", methods=["POST"])
+@role_required("authority")
+def api_approve_doctor(doctor_id):
+    """Authority action: approve or toggle doctor practice status."""
+    conn = get_connection()
+    if not conn:
+        return jsonify({"success": False, "error": "Database error"}), 500
+
+    cur = conn.cursor()
+    cur.execute("SELECT id, is_approved, full_name, email FROM users WHERE id = %s AND role = 'doctor'", (doctor_id,))
+    doc = cur.fetchone()
+    if not doc:
+        cur.close()
+        conn.close()
+        return jsonify({"success": False, "error": "Doctor not found"}), 404
+
+    new_status = not doc.get("is_approved", False)
+    cur.execute("UPDATE users SET is_approved = %s WHERE id = %s", (new_status, doctor_id))
+    conn.commit()
+    cur.close()
+    conn.close()
+
+    auth_service.log_audit_event(
+        action=f"DOCTOR_APPROVAL_STATUS_CHANGED:{new_status}",
+        user_id=session.get("user_id"),
+        user_role="authority",
+        details=f"Doctor ID: {doctor_id} ({doc.get('full_name')}) approval set to {new_status}"
+    )
+
+    return jsonify({"success": True, "is_approved": new_status})
+
+
+# ============================================================================
+# PATIENT PORTAL & CLINICAL RECORDS
+# ============================================================================
+
+@app.route("/dashboard")
+@role_required("patient")
+def dashboard():
+    """Patient Dashboard: Restricted strictly to the authenticated patient."""
+    patient_id = session.get("patient_id")
+    patient = get_patient_by_id(patient_id)
+    if not patient:
+        flash("Patient profile could not be loaded.", "error")
+        return redirect(url_for("logout"))
+
+    conn = get_connection()
     counts = {"records": 0, "family": 0, "genetic": 0}
-    if conn and patient:
+    if conn:
         try:
-            cursor = conn.cursor()
-            p_id = patient.get("id")
-            cursor.execute("SELECT COUNT(*) FROM medical_records WHERE patient_id = %s", (p_id,))
-            counts["records"] = cursor.fetchone()[0]
+            cur = conn.cursor()
+            cur.execute("SELECT COUNT(*) as cnt FROM medical_records WHERE patient_id = %s", (patient_id,))
+            counts["records"] = cur.fetchone().get("cnt", 0)
 
-            cursor.execute("SELECT COUNT(*) FROM family_history WHERE patient_id = %s", (p_id,))
-            counts["family"] = cursor.fetchone()[0]
+            cur.execute("SELECT COUNT(*) as cnt FROM family_history WHERE patient_id = %s", (patient_id,))
+            counts["family"] = cur.fetchone().get("cnt", 0)
 
-            cursor.execute("SELECT COUNT(*) FROM genetic_history WHERE patient_id = %s", (p_id,))
-            counts["genetic"] = cursor.fetchone()[0]
+            cur.execute("SELECT COUNT(*) as cnt FROM genetic_history WHERE patient_id = %s", (patient_id,))
+            counts["genetic"] = cur.fetchone().get("cnt", 0)
 
-            cursor.close()
+            cur.close()
             conn.close()
         except Exception as e:
             print(f"[!] Error fetching dashboard counts: {e}")
@@ -254,240 +668,42 @@ def dashboard():
     return render_template("dashboard.html", patient=patient, counts=counts)
 
 
-@app.route("/registration")
-def registration():
-    return render_template("Registration.html")
-
-
-@app.route("/register", methods=["POST"])
-def register():
-    full_name = request.form.get("full_name")
-    password = request.form.get("password") or "medicare123"
-    dob = request.form.get("dob")
-    age = request.form.get("age")
-    gender = request.form.get("gender")
-    blood_group = request.form.get("blood_group")
-    marital_status = request.form.get("marital_status")
-    occupation = request.form.get("occupation")
-
-    mobile = request.form.get("mobile")
-    alternate_mobile = request.form.get("alternate_mobile")
-    email = request.form.get("email")
-    address = request.form.get("address")
-    city = request.form.get("city")
-    state = request.form.get("state")
-    pin_code = request.form.get("pin_code")
-
-    emergency_name = request.form.get("emergency_name")
-    emergency_relationship = request.form.get("emergency_relationship")
-    emergency_number = request.form.get("emergency_number")
-
-    allergies = request.form.get("allergies")
-    existing_conditions = request.form.get("existing_conditions")
-    current_medications = request.form.get("current_medications")
-
-    conn = get_connection()
-    if conn is None:
-        return "Database connection failed!"
-
-    cursor = conn.cursor()
-    query = """
-        INSERT INTO patients (
-            full_name, password, dob, age, gender, blood_group, marital_status, occupation,
-            mobile, alternate_mobile, email, address, city, state, pin_code,
-            emergency_name, emergency_relationship, emergency_number,
-            allergies, existing_conditions, current_medications
-        )
-        VALUES (
-            %s, %s, %s, %s, %s, %s, %s, %s,
-            %s, %s, %s, %s, %s, %s, %s,
-            %s, %s, %s, %s, %s, %s
-        )
-    """
-    values = (
-        full_name, password, dob, age, gender, blood_group, marital_status, occupation,
-        mobile, alternate_mobile, email, address, city, state, pin_code,
-        emergency_name, emergency_relationship, emergency_number,
-        allergies, existing_conditions, current_medications,
-    )
-
-    try:
-        cursor.execute(query, values)
-        conn.commit()
-        patient_id = cursor.lastrowid
-        cursor.close()
-        conn.close()
-
-        # Update session to newly registered patient
-        session["logged_in"] = True
-        session["role"] = "patient"
-        session["patient_id"] = patient_id
-        session["user_name"] = full_name
-
-        return f"""<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Registration Successful - Medicare</title>
-    <style>
-        * {{ box-sizing: border-box; margin: 0; padding: 0; }}
-        body {{
-            font-family: Arial, sans-serif;
-            background: #f6fbfb;
-            color: #123f73;
-            min-height: 100vh;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            padding: 20px;
-        }}
-        .card {{
-            background: white;
-            max-width: 550px;
-            width: 100%;
-            padding: 40px 30px;
-            border-radius: 24px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.08);
-            text-align: center;
-        }}
-        .icon {{
-            width: 70px;
-            height: 70px;
-            background: #eaf8f1;
-            color: #188774;
-            font-size: 36px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin: 0 auto 15px;
-        }}
-        h1 {{ color: #155985; font-size: 24px; margin-bottom: 8px; }}
-        .desc {{ color: #60798e; font-size: 14px; margin-bottom: 20px; }}
-        
-        .credentials-card {{
-            background: #f0f7fd;
-            border: 2px solid #bce0f8;
-            border-radius: 16px;
-            padding: 20px;
-            margin: 20px 0;
-            text-align: left;
-        }}
-        .cred-title {{
-            font-size: 12px;
-            text-transform: uppercase;
-            font-weight: bold;
-            color: #155985;
-            letter-spacing: 1px;
-            margin-bottom: 12px;
-            display: flex;
-            justify-content: space-between;
-        }}
-        .cred-row {{
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 8px 0;
-            border-bottom: 1px dashed #d0e4f2;
-            font-size: 14px;
-        }}
-        .cred-row:last-child {{ border-bottom: none; }}
-        .cred-val {{
-            font-weight: bold;
-            font-family: monospace;
-            background: white;
-            padding: 3px 8px;
-            border-radius: 6px;
-            color: #155985;
-            border: 1px solid #d5e6f2;
-        }}
-        .cred-val-pw {{
-            color: #b06000;
-            background: #fff8e1;
-            border-color: #ffe082;
-        }}
-        .actions {{ display: flex; flex-direction: column; gap: 10px; margin-top: 25px; }}
-        .btn {{
-            display: block;
-            padding: 13px;
-            border-radius: 25px;
-            text-decoration: none;
-            font-weight: bold;
-            font-size: 14px;
-            transition: .2s;
-        }}
-        .btn-primary {{ background: #155985; color: white; }}
-        .btn-primary:hover {{ background: #0d466b; }}
-        .btn-card {{ background: #0b5c92; color: white; }}
-        .btn-card:hover {{ background: #084975; }}
-        .btn-secondary {{ background: #eaf6ff; color: #155985; border: 1px solid #155985; }}
-        .btn-secondary:hover {{ background: #d8edfc; }}
-        .btn-link {{ color: #60798e; font-size: 13px; text-decoration: none; margin-top: 10px; }}
-    </style>
-</head>
-<body>
-    <div class="card">
-        <div class="icon">✓</div>
-        <h1>Patient Registered Successfully!</h1>
-        <p class="desc">Your record has been securely stored. Please keep note of your login password below.</p>
-        
-        <div class="credentials-card">
-            <div class="cred-title">
-                <span>🔑 Your Login Credentials</span>
-                <span style="color:#188774;">Save for Login</span>
-            </div>
-            <div class="cred-row">
-                <span>Assigned Patient ID:</span>
-                <span class="cred-val">P{patient_id:05d}</span>
-            </div>
-            <div class="cred-row">
-                <span>Patient Full Name:</span>
-                <span style="font-weight:bold; color:#123f73;">{full_name}</span>
-            </div>
-            <div class="cred-row">
-                <span>Login Mobile:</span>
-                <span class="cred-val">{mobile or 'N/A'}</span>
-            </div>
-            <div class="cred-row">
-                <span>Login Password:</span>
-                <span class="cred-val cred-val-pw">{password}</span>
-            </div>
-        </div>
-
-        <div class="actions">
-            <a href="/card/{patient_id}" class="btn btn-card">🪪 View Official Medical ID Card →</a>
-            <a href="/health-profile/{patient_id}" class="btn btn-primary">📱 View Health Profile & QR Code</a>
-            <a href="/dashboard" class="btn btn-secondary">Go to Dashboard</a>
-            <a href="/registration" class="btn-link">+ Register Another Patient</a>
-        </div>
-    </div>
-</body>
-</html>"""
-
-    except Exception as e:
-        conn.rollback()
-        cursor.close()
-        conn.close()
-        return f"Registration failed: {e}"
-
-
-# ------------------- HEALTH PROFILE & QR CODE -------------------
-
 @app.route("/health-profile")
 @app.route("/health-profile/<int:patient_id>")
+@login_required
 def health_profile(patient_id=None):
-    patient = get_current_patient(patient_id)
+    """View Health Profile: Protected by strict IDOR checks."""
+    if patient_id is None:
+        patient_id = session.get("patient_id")
+        if not patient_id:
+            flash("Patient ID not specified.", "error")
+            return redirect(url_for("home"))
+
+    # Enforce authorization
+    is_allowed, err_resp = verify_patient_access(patient_id)
+    if not is_allowed:
+        return err_resp
+
+    patient = get_patient_by_id(patient_id)
+    if not patient:
+        abort(404)
+
     qr_base64 = generate_qr_base64(patient)
     message = request.args.get("msg")
     return render_template("health_profile.html", patient=patient, qr_base64=qr_base64, message=message)
 
 
 @app.route("/update-health-profile", methods=["POST"])
+@login_required
 def update_health_profile():
     patient_id = request.form.get("patient_id")
     if not patient_id:
-        return redirect(url_for("health_profile"))
+        return redirect(url_for("dashboard"))
+
+    # IDOR Check
+    is_allowed, err_resp = verify_patient_access(int(patient_id))
+    if not is_allowed:
+        return err_resp
 
     full_name = request.form.get("full_name")
     age = request.form.get("age")
@@ -504,8 +720,8 @@ def update_health_profile():
 
     conn = get_connection()
     if conn:
-        cursor = conn.cursor()
-        cursor.execute("""
+        cur = conn.cursor()
+        cur.execute("""
             UPDATE patients SET
                 full_name = %s,
                 age = %s,
@@ -527,20 +743,51 @@ def update_health_profile():
             patient_id
         ))
         conn.commit()
-        cursor.close()
+        cur.close()
         conn.close()
 
+    auth_service.log_audit_event("PATIENT_PROFILE_UPDATED", user_id=session.get("user_id") or session.get("patient_id"), user_role=session.get("role"), details=f"Updated profile for patient #{patient_id}")
     return redirect(url_for("health_profile", patient_id=patient_id, msg="Health Profile updated successfully!"))
 
 
+@app.route("/card")
+@app.route("/card/<int:patient_id>")
+@login_required
+def view_medical_card(patient_id=None):
+    if patient_id is None:
+        patient_id = session.get("patient_id")
+        if not patient_id:
+            flash("Patient ID not found.", "error")
+            return redirect(url_for("home"))
+
+    is_allowed, err_resp = verify_patient_access(patient_id)
+    if not is_allowed:
+        return err_resp
+
+    patient = get_patient_by_id(patient_id)
+    if not patient:
+        abort(404)
+
+    qr_b64 = generate_qr_base64(patient)
+    return render_template("medical_id_card.html", patient=patient, qr_base64=qr_b64)
+
+
 @app.route("/qr/<int:patient_id>")
+@login_required
 def download_qr(patient_id):
-    """Direct PNG image download of the patient's Emergency Health QR code."""
-    patient = get_current_patient(patient_id)
+    """Direct PNG image download of the patient's Emergency Health QR code (Protected)."""
+    is_allowed, err_resp = verify_patient_access(patient_id)
+    if not is_allowed:
+        return err_resp
+
+    patient = get_patient_by_id(patient_id)
+    if not patient:
+        abort(404)
+
     patient_id_formatted = f"P{int(patient['id']):05d}"
     base_url = get_base_url()
     qr_data = (
-        f"MEDICARE EMERGENCY HEALTH ID\n"
+        f"MEDICARE SECURE HEALTH ID\n"
         f"ID: {patient_id_formatted}\n"
         f"Name: {patient.get('full_name')}\n"
         f"Blood: {patient.get('blood_group')}\n"
@@ -569,10 +816,14 @@ def download_qr(patient_id):
 # ------------------- FAMILY MEDICAL HISTORY -------------------
 
 @app.route("/family-history", methods=["GET", "POST"])
+@login_required
 def family_history():
-    patient = get_current_patient()
-    p_id = patient.get("id", 1)
+    patient_id = session.get("patient_id")
+    if not patient_id:
+        flash("Access to family history requires patient authentication.", "error")
+        return redirect(url_for("login"))
 
+    patient = get_patient_by_id(patient_id)
     conn = get_connection()
     if request.method == "POST":
         relative_name = request.form.get("relative_name")
@@ -583,20 +834,20 @@ def family_history():
         notes = request.form.get("notes")
 
         if conn:
-            cursor = conn.cursor()
-            cursor.execute("""
+            cur = conn.cursor()
+            cur.execute("""
                 INSERT INTO family_history (patient_id, relative_name, relationship, condition_name, age_at_diagnosis, is_living, notes)
                 VALUES (%s, %s, %s, %s, %s, %s, %s)
-            """, (p_id, relative_name, relationship, condition_name, age_at_diagnosis, is_living, notes))
+            """, (patient_id, relative_name, relationship, condition_name, age_at_diagnosis, is_living, notes))
             conn.commit()
-            cursor.close()
+            cur.close()
 
     history = []
     if conn:
-        cursor = conn.cursor(dictionary=True, buffered=True)
-        cursor.execute("SELECT * FROM family_history WHERE patient_id = %s ORDER BY id DESC", (p_id,))
-        history = cursor.fetchall()
-        cursor.close()
+        cur = conn.cursor()
+        cur.execute("SELECT * FROM family_history WHERE patient_id = %s ORDER BY id DESC", (patient_id,))
+        history = cur.fetchall()
+        cur.close()
         conn.close()
 
     return render_template("family_history.html", patient=patient, history=history)
@@ -605,10 +856,14 @@ def family_history():
 # ------------------- GENETIC & HEREDITARY HISTORY -------------------
 
 @app.route("/genetic-history", methods=["GET", "POST"])
+@login_required
 def genetic_history():
-    patient = get_current_patient()
-    p_id = patient.get("id", 1)
+    patient_id = session.get("patient_id")
+    if not patient_id:
+        flash("Access requires patient authentication.", "error")
+        return redirect(url_for("login"))
 
+    patient = get_patient_by_id(patient_id)
     conn = get_connection()
     if request.method == "POST":
         condition_title = request.form.get("condition_title")
@@ -619,20 +874,20 @@ def genetic_history():
         notes = request.form.get("notes")
 
         if conn:
-            cursor = conn.cursor()
-            cursor.execute("""
+            cur = conn.cursor()
+            cur.execute("""
                 INSERT INTO genetic_history (patient_id, condition_title, inheritance_pattern, affected_relatives, carrier_status, risk_level, notes)
                 VALUES (%s, %s, %s, %s, %s, %s, %s)
-            """, (p_id, condition_title, inheritance_pattern, affected_relatives, carrier_status, risk_level, notes))
+            """, (patient_id, condition_title, inheritance_pattern, affected_relatives, carrier_status, risk_level, notes))
             conn.commit()
-            cursor.close()
+            cur.close()
 
     genetics = []
     if conn:
-        cursor = conn.cursor(dictionary=True, buffered=True)
-        cursor.execute("SELECT * FROM genetic_history WHERE patient_id = %s ORDER BY id DESC", (p_id,))
-        genetics = cursor.fetchall()
-        cursor.close()
+        cur = conn.cursor()
+        cur.execute("SELECT * FROM genetic_history WHERE patient_id = %s ORDER BY id DESC", (patient_id,))
+        genetics = cur.fetchall()
+        cur.close()
         conn.close()
 
     return render_template("genetic_history.html", patient=patient, genetics=genetics)
@@ -641,10 +896,19 @@ def genetic_history():
 # ------------------- MEDICAL RECORDS -------------------
 
 @app.route("/medical-records", methods=["GET", "POST"])
+@login_required
 def medical_records():
-    patient = get_current_patient()
-    p_id = patient.get("id", 1)
+    # If patient, show their own. If doctor/authority, allow viewing target patient.
+    target_p_id = request.args.get("patient_id", type=int) or session.get("patient_id")
+    if not target_p_id:
+        flash("Patient not specified.", "error")
+        return redirect(url_for("home"))
 
+    is_allowed, err_resp = verify_patient_access(target_p_id)
+    if not is_allowed:
+        return err_resp
+
+    patient = get_patient_by_id(target_p_id)
     conn = get_connection()
     if request.method == "POST":
         record_type = request.form.get("record_type")
@@ -656,20 +920,20 @@ def medical_records():
         attachment_name = request.form.get("attachment_name") or "Medical_Report.pdf"
 
         if conn:
-            cursor = conn.cursor()
-            cursor.execute("""
+            cur = conn.cursor()
+            cur.execute("""
                 INSERT INTO medical_records (patient_id, record_type, title, doctor_name, hospital_name, record_date, description, attachment_name)
                 VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
-            """, (p_id, record_type, title, doctor_name, hospital_name, record_date, description, attachment_name))
+            """, (target_p_id, record_type, title, doctor_name, hospital_name, record_date, description, attachment_name))
             conn.commit()
-            cursor.close()
+            cur.close()
 
     records = []
     if conn:
-        cursor = conn.cursor(dictionary=True, buffered=True)
-        cursor.execute("SELECT * FROM medical_records WHERE patient_id = %s ORDER BY id DESC", (p_id,))
-        records = cursor.fetchall()
-        cursor.close()
+        cur = conn.cursor()
+        cur.execute("SELECT * FROM medical_records WHERE patient_id = %s ORDER BY id DESC", (target_p_id,))
+        records = cur.fetchall()
+        cur.close()
         conn.close()
 
     return render_template("medical_records.html", patient=patient, records=records)
@@ -678,109 +942,139 @@ def medical_records():
 # ------------------- SETTINGS -------------------
 
 @app.route("/settings", methods=["GET", "POST"])
+@login_required
 def settings():
-    patient = get_current_patient()
+    patient = get_patient_by_id(session.get("patient_id"))
     message = None
     if request.method == "POST":
         message = "Preferences saved successfully!"
     return render_template("settings.html", patient=patient, message=message)
 
 
-# ------------------- AUTHORITY DASHBOARD -------------------
+# ------------------- REGISTRATION -------------------
 
-@app.route("/authority-dashboard")
-def authority_dashboard():
-    query = request.args.get("q", "").strip()
+@app.route("/registration")
+def registration():
+    return render_template("Registration.html")
+
+
+@app.route("/register", methods=["POST"])
+def register():
+    full_name = request.form.get("full_name")
+    raw_password = request.form.get("password") or "medicare123"
+    password_hash = generate_password_hash(raw_password)
+
+    dob = request.form.get("dob")
+    age = request.form.get("age")
+    gender = request.form.get("gender")
+    blood_group = request.form.get("blood_group")
+    marital_status = request.form.get("marital_status")
+    occupation = request.form.get("occupation")
+
+    mobile = request.form.get("mobile")
+    alternate_mobile = request.form.get("alternate_mobile")
+    email = request.form.get("email")
+    address = request.form.get("address")
+    city = request.form.get("city")
+    state = request.form.get("state")
+    pin_code = request.form.get("pin_code")
+
+    emergency_name = request.form.get("emergency_name")
+    emergency_relationship = request.form.get("emergency_relationship")
+    emergency_number = request.form.get("emergency_number")
+
+    allergies = request.form.get("allergies")
+    existing_conditions = request.form.get("existing_conditions")
+    current_medications = request.form.get("current_medications")
+
     conn = get_connection()
-    patients = []
+    if conn is None:
+        return "Database connection failed!", 500
 
-    if conn:
-        cursor = conn.cursor(dictionary=True, buffered=True)
-        if query:
-            clean_q = query.upper().replace("P", "")
-            cursor.execute("""
-                SELECT * FROM patients
-                WHERE full_name LIKE %s OR mobile LIKE %s OR id = %s
-                ORDER BY id DESC
-            """, (f"%{query}%", f"%{query}%", int(clean_q) if clean_q.isdigit() else -1))
-        else:
-            cursor.execute("SELECT * FROM patients ORDER BY id DESC")
-        patients = cursor.fetchall()
-        cursor.close()
+    cur = conn.cursor()
+    query = """
+        INSERT INTO patients (
+            full_name, password_hash, dob, age, gender, blood_group, marital_status, occupation,
+            mobile, alternate_mobile, email, address, city, state, pin_code,
+            emergency_name, emergency_relationship, emergency_number,
+            allergies, existing_conditions, current_medications
+        )
+        VALUES (
+            %s, %s, %s, %s, %s, %s, %s, %s,
+            %s, %s, %s, %s, %s, %s, %s,
+            %s, %s, %s, %s, %s, %s
+        )
+    """
+    values = (
+        full_name, password_hash, dob, age, gender, blood_group, marital_status, occupation,
+        mobile, alternate_mobile, email, address, city, state, pin_code,
+        emergency_name, emergency_relationship, emergency_number,
+        allergies, existing_conditions, current_medications,
+    )
+
+    try:
+        cur.execute(query, values)
+        conn.commit()
+        patient_id = cur.lastrowid
+        cur.close()
         conn.close()
 
-    return render_template("authority_dashboard.html", patients=patients, query=query)
+        # Update session to newly registered patient
+        session.clear()
+        session.permanent = True
+        session["logged_in"] = True
+        session["role"] = "patient"
+        session["patient_id"] = patient_id
+        session["user_name"] = full_name
+        session["email"] = email
+
+        auth_service.log_audit_event("PATIENT_REGISTERED", user_id=patient_id, user_role="patient")
+        flash(f"Account created successfully for {full_name}!", "success")
+        return redirect(url_for("dashboard"))
+    except Exception as e:
+        conn.rollback()
+        cur.close()
+        conn.close()
+        return f"Registration error: {e}", 500
 
 
-# ------------------- OFFLINE AI HEALTH ASSISTANT -------------------
+# ------------------- AI HEALTH ASSISTANT -------------------
 
 @app.route("/ai-assistant")
+@login_required
 def ai_assistant_view():
-    patient = get_current_patient()
+    patient_id = session.get("patient_id")
+    patient = get_patient_by_id(patient_id)
     return render_template("ai_assistant.html", patient=patient)
 
 
 @app.route("/api/ai-chat", methods=["POST"])
+@login_required
 def api_ai_chat():
     data = request.get_json(silent=True) or {}
     query = data.get("query", "").strip()
     if not query:
         return jsonify({"reply": "Please describe your question or symptom.", "level": "empty", "suggestions": []})
 
-    patient = get_current_patient()
+    patient_id = session.get("patient_id")
+    patient = get_patient_by_id(patient_id)
     result = ai_assistant.analyze(query, patient)
     return jsonify(result)
 
 
-# ------------------- MEDICAL ID CARD (PHOTO STYLE) -------------------
+# ============================================================================
+# ERROR HANDLERS
+# ============================================================================
 
-@app.route("/card")
-@app.route("/card/<int:patient_id>")
-def view_medical_card(patient_id=None):
-    patient = get_current_patient(patient_id)
-    qr_b64 = generate_qr_base64(patient)
-    return render_template("medical_id_card.html", patient=patient, qr_base64=qr_b64)
-
-
-# ------------------- PASSWORD LOOKUP API -------------------
-
-@app.route("/api/lookup-password")
-def api_lookup_password():
-    query = request.args.get("query", "").strip()
-    if not query:
-        return jsonify({"success": False, "error": "Query required"})
-
-    conn = get_connection()
-    if not conn:
-        return jsonify({"success": False, "error": "Database unavailable"})
-
-    cursor = conn.cursor(dictionary=True, buffered=True)
-    clean_id = query.upper().replace("P", "")
-    patient = None
-    if clean_id.isdigit():
-        cursor.execute("SELECT id, full_name, mobile, email, password FROM patients WHERE id = %s", (int(clean_id),))
-        patient = cursor.fetchone()
-
-    if not patient:
-        cursor.execute("SELECT id, full_name, mobile, email, password FROM patients WHERE mobile = %s OR email = %s", (query, query))
-        patient = cursor.fetchone()
-
-    cursor.close()
-    conn.close()
-
-    if patient:
-        return jsonify({
-            "success": True,
-            "id": patient.get("id"),
-            "full_name": patient.get("full_name"),
-            "mobile": patient.get("mobile"),
-            "email": patient.get("email"),
-            "password": patient.get("password") or "medicare123"
-        })
-    return jsonify({"success": False, "error": "Account not found"})
+@app.errorhandler(401)
+def unauthorized_access(e):
+    return render_template("404.html", error_message="Authentication Required: Please sign in with valid credentials."), 401
 
 
-# ------------------- ERROR HANDLERS -------------------
+@app.errorhandler(403)
+def forbidden_access(e):
+    return render_template("404.html", error_message="Access Forbidden: You do not have authorization to view this medical record."), 403
+
 
 @app.errorhandler(404)
 def page_not_found(e):
@@ -790,22 +1084,23 @@ def page_not_found(e):
 @app.errorhandler(500)
 def server_error(e):
     trace = traceback.format_exc()
-    print("\n" + "="*60)
-    print("🚨 [500 SERVER ERROR DETAILS]:")
+    print("\n" + "=" * 60)
+    print("[500 SERVER ERROR DETAILS]:")
     print(trace)
-    print("="*60 + "\n")
+    print("=" * 60 + "\n")
     return render_template("500.html", error_details=str(e), traceback_str=trace), 500
 
 
-# ------------------- TEST DB & RUNNER -------------------
+# ------------------- HEALTH CHECK & ENTRY POINT -------------------
 
+@app.route("/healthz")
 @app.route("/test-db")
-def test_db():
+def healthz():
     conn = get_connection()
     if conn:
         conn.close()
-        return "Database connection successful!"
-    return "Database connection failed!"
+        return jsonify({"status": "healthy", "database": "connected"}), 200
+    return jsonify({"status": "unhealthy", "database": "disconnected"}), 500
 
 
 def open_browser():
@@ -815,7 +1110,7 @@ def open_browser():
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
     host = os.environ.get("HOST", "127.0.0.1")
-    debug_mode = True
+    debug_mode = os.environ.get("FLASK_ENV") != "production"
 
     if debug_mode and not os.environ.get("WERKZEUG_RUN_MAIN"):
         threading.Timer(1.2, open_browser).start()

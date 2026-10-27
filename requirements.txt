@@ -1,7 +1,8 @@
 Flask>=3.0.0
-mysql-connector-python>=8.0.0
+psycopg2-binary>=2.9.9
 qrcode>=7.4.2
 Pillow>=10.0.0
 gunicorn>=21.2.0
 waitress>=3.0.0
 python-dotenv>=1.0.0
+Werkzeug>=3.0.0
