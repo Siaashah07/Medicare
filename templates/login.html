@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Medicare - Secure Healthcare Login</title>
+
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    background: #f6fbfb;
+    color: #123f73;
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 30px 15px;
+}
+
+.container {
+    width: 90%;
+    max-width: 960px;
+    text-align: center;
+}
+
+.top-nav {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 25px;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.nav-link {
+    color: #155985;
+    text-decoration: none;
+    font-weight: bold;
+    font-size: 15px;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.nav-link:hover { text-decoration: underline; }
+
+.logo-wrap {
+    text-decoration: none;
+    color: inherit;
+    display: inline-block;
+}
+
+.logo {
+    width: 60px;
+    height: 60px;
+    margin: auto;
+    border-radius: 50%;
+    background: #35aa9a;
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 30px;
+}
+
+h1 { margin: 15px 0 8px; }
+
+.subtitle {
+    color: #718496;
+    margin-bottom: 25px;
+}
+
+.alert {
+    padding: 14px 20px;
+    border-radius: 12px;
+    margin: 0 auto 20px auto;
+    max-width: 550px;
+    font-size: 14px;
+    text-align: left;
+    font-weight: 500;
+}
+.alert-error {
+    background: #ffebee;
+    color: #c62828;
+    border: 1px solid #ffcdd2;
+}
+.alert-success {
+    background: #eaf8f1;
+    color: #188774;
+    border: 1px solid #c9eee0;
+}
+
+.options {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 20px;
+}
+
+.card {
+    padding: 35px 22px;
+    border-radius: 25px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.06);
+    background: white;
+    border: 1px solid #e1ecf4;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    text-align: center;
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 15px 35px rgba(0,0,0,0.1);
+}
+
+.patient { background: linear-gradient(180deg, #ffffff 0%, #f0f8ff 100%); border-color: #bce0f8; }
+.doctor { background: linear-gradient(180deg, #ffffff 0%, #eaf8f1 100%); border-color: #a3e4cb; }
+.authority { background: linear-gradient(180deg, #ffffff 0%, #f8f4ff 100%); border-color: #debff9; }
+
+.icon {
+    font-size: 42px;
+    margin-bottom: 12px;
+}
+
+.card h2 { margin-bottom: 10px; font-size: 20px; }
+.card p {
+    color: #60798e;
+    line-height: 1.45;
+    font-size: 13px;
+    margin-bottom: 15px;
+}
+
+.btn-portal {
+    width: 100%;
+    padding: 13px;
+    border: 0;
+    border-radius: 25px;
+    color: white;
+    font-size: 14px;
+    font-weight: bold;
+    cursor: pointer;
+    text-decoration: none;
+    display: inline-block;
+    transition: 0.2s;
+    box-sizing: border-box;
+}
+
+.btn-patient { background: #155985; }
+.btn-patient:hover { background: #0d466b; }
+.btn-doctor { background: #188774; }
+.btn-doctor:hover { background: #116859; }
+.btn-authority { background: #6a1b9a; }
+.btn-authority:hover { background: #4a148c; }
+
+.form {
+    display: none;
+    max-width: 480px;
+    margin: auto;
+    padding: 35px;
+    border-radius: 25px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+    background: white;
+    border: 1px solid #d4e9f7;
+}
+
+.input-group {
+    position: relative;
+    margin: 10px 0;
+}
+
+input {
+    width: 100%;
+    padding: 14px;
+    border: 1px solid #d5e0e8;
+    border-radius: 10px;
+    font-size: 14px;
+    outline: none;
+    box-sizing: border-box;
+}
+
+input:focus { border-color: #155985; }
+
+.pw-toggle-btn {
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 16px;
+    color: #718496;
+    width: auto;
+    margin: 0;
+    padding: 0;
+}
+
+.quick-accounts-box {
+    margin-top: 20px;
+    padding: 14px;
+    background: #edf6fd;
+    border-radius: 14px;
+    text-align: left;
+    font-size: 13px;
+}
+.quick-accounts-box strong {
+    color: #155985;
+    display: block;
+    margin-bottom: 8px;
+}
+.account-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+.chip {
+    background: white;
+    border: 1px solid #bce0f8;
+    padding: 5px 10px;
+    border-radius: 12px;
+    cursor: pointer;
+    font-size: 12px;
+    color: #123f73;
+    font-weight: 500;
+    transition: 0.15s;
+}
+.chip:hover {
+    background: #155985;
+    color: white;
+}
+
+.back {
+    display: block;
+    margin-top: 20px;
+    color: #1475d1;
+    cursor: pointer;
+    font-weight: bold;
+    font-size: 14px;
+}
+
+.register {
+    margin-top: 18px;
+    color: #657b8e;
+    font-size: 14px;
+}
+.register a {
+    color: #1475d1;
+    text-decoration: none;
+    font-weight: bold;
+}
+
+@media(max-width: 850px) {
+    .options { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+    <div class="top-nav">
+        <a href="/" class="nav-link">← Back to Home</a>
+        <div style="display:flex; gap:12px; align-items:center;">
+            <a href="/registration" class="nav-link">Register Patient →</a>
+        </div>
+    </div>
+
+    <!-- HEADER -->
+    <a href="/" class="logo-wrap">
+        <div class="logo">♡</div>
+        <h1>Medicare</h1>
+    </a>
+
+    <p class="subtitle">
+        Secure Healthcare Management & Identity Verification
+    </p>
+
+    <!-- FLASH MESSAGES -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        {% for category, message in messages %}
+          <div class="alert alert-{{ 'error' if category == 'error' else 'success' }}">
+            {{ message }}
+          </div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+
+    <!-- 3 DISTINCT LOGIN PORTALS -->
+    <div class="options" id="options">
+
+        <!-- PATIENT CARD -->
+        <div class="card patient">
+            <div>
+                <div class="icon">👤</div>
+                <h2>Patient Login</h2>
+                <p>Access your personal health profile, emergency QR pass, and medical archives.</p>
+            </div>
+            <button class="btn-portal btn-patient" onclick="showPatientForm()">
+                Patient Login →
+            </button>
+        </div>
+
+        <!-- DOCTOR CARD -->
+        <div class="card doctor">
+            <div>
+                <div class="icon">🩺</div>
+                <h2>Doctor Portal</h2>
+                <p>Licensed physicians access patient records and record prescriptions with multi-factor code.</p>
+            </div>
+            <a class="btn-portal btn-doctor" href="/doctor/login">
+                Doctor Portal Login →
+            </a>
+        </div>
+
+        <!-- AUTHORITY CARD -->
+        <div class="card authority">
+            <div>
+                <div class="icon">🏥</div>
+                <h2>Authority Portal</h2>
+                <p>Hospital authority administration with mandatory email verification code on every login.</p>
+            </div>
+            <a class="btn-portal btn-authority" href="/authority/login">
+                Authority Login →
+            </a>
+        </div>
+
+    </div>
+
+    <!-- PATIENT LOGIN FORM -->
+    <div class="form" id="patientForm">
+        <div class="icon">👤</div>
+        <h2>Patient Login</h2>
+        <p class="subtitle">Enter your registered ID, Mobile, or Email and Password</p>
+
+        <form action="/login" method="POST">
+            <input type="hidden" name="role" value="patient">
+
+            <div class="input-group">
+                <input type="text" id="patient_id_input" name="identifier" placeholder="Patient ID (e.g. P00004), Mobile or Email" value="8788625747" required>
+            </div>
+
+            <div class="input-group">
+                <input type="password" id="patient_pw_input" name="password" placeholder="Your Password" value="kumkum123" required>
+                <button type="button" class="pw-toggle-btn" onclick="togglePw('patient_pw_input', this)">👁️</button>
+            </div>
+
+            <button type="submit" class="btn-portal btn-patient" style="margin-top: 15px;">Login to Dashboard →</button>
+        </form>
+
+        <!-- Quick 1-Click Fill Chips -->
+        <div class="quick-accounts-box">
+            <strong>⚡ Quick 1-Click Demo Accounts:</strong>
+            <div class="account-chips">
+                <span class="chip" onclick="fillPatient('8788625747', 'kumkum123')">👤 Kumkum Wadile</span>
+                <span class="chip" onclick="fillPatient('8793373606', 'siya123')">👤 Siya Shah</span>
+                <span class="chip" onclick="fillPatient('9518995318', 'anushka123')">👤 Anushka Wankhede</span>
+                <span class="chip" onclick="fillPatient('eleanor.vance@medicare.io', 'password123')">👤 Eleanor Vance</span>
+            </div>
+        </div>
+
+        <div class="register">
+            New patient?
+            <a href="/registration">Register New Patient</a>
+        </div>
+
+        <span class="back" onclick="goBack()">
+            ← Back to portals
+        </span>
+    </div>
+
+</div>
+
+<script>
+function showPatientForm() {
+    document.getElementById("options").style.display = "none";
+    document.getElementById("patientForm").style.display = "block";
+}
+
+function goBack() {
+    document.getElementById("patientForm").style.display = "none";
+    document.getElementById("options").style.display = "grid";
+}
+
+function togglePw(fieldId, btn) {
+    var f = document.getElementById(fieldId);
+    if (f.type === "password") {
+        f.type = "text";
+        btn.innerText = "🙈";
+    } else {
+        f.type = "password";
+        btn.innerText = "👁️";
+    }
+}
+
+function fillPatient(identifier, password) {
+    document.getElementById("patient_id_input").value = identifier;
+    document.getElementById("patient_pw_input").value = password;
+}
+</script>
+
+</body>
+</html>

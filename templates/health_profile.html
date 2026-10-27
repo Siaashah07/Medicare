@@ -1,0 +1,1293 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Health Profile & QR Emergency Card - Medicare</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            background: #f6fbfb;
+            color: #123f73;
+            min-height: 100vh;
+        }
+
+        header {
+            padding: 20px 6%;
+            background: white;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 3px 15px rgba(0,0,0,0.06);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            text-decoration: none;
+            color: #123f73;
+        }
+
+        .logo-icon {
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            background: #35aa9a;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+        }
+
+        .logo h1 {
+            font-size: 22px;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 18px;
+            align-items: center;
+        }
+
+        .nav-link {
+            color: #155985;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 14px;
+            transition: color 0.2s;
+        }
+
+        .nav-link:hover {
+            text-decoration: underline;
+        }
+
+        .btn-outline {
+            color: #155985;
+            text-decoration: none;
+            font-weight: bold;
+            padding: 8px 18px;
+            border: 1px solid #155985;
+            border-radius: 20px;
+            transition: 0.2s;
+            font-size: 14px;
+        }
+
+        .btn-outline:hover {
+            background: #155985;
+            color: white;
+        }
+
+        .container {
+            width: 90%;
+            max-width: 1100px;
+            margin: 30px auto 60px auto;
+        }
+
+        .back-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 25px;
+        }
+
+        .back-link {
+            color: #155985;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 15px;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .back-link:hover {
+            text-decoration: underline;
+        }
+
+        /* Banner */
+        .profile-banner {
+            background: linear-gradient(135deg, #155985 0%, #1e7ba8 50%, #35aa9a 100%);
+            border-radius: 24px;
+            padding: 35px 40px;
+            color: white;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 25px;
+            box-shadow: 0 10px 25px rgba(21, 89, 133, 0.2);
+            margin-bottom: 30px;
+        }
+
+        .patient-identity {
+            display: flex;
+            align-items: center;
+            gap: 22px;
+        }
+
+        .avatar {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.2);
+            border: 3px solid rgba(255, 255, 255, 0.85);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 34px;
+            font-weight: bold;
+        }
+
+        .patient-details h2 {
+            font-size: 28px;
+            margin-bottom: 6px;
+        }
+
+        .patient-meta {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            flex-wrap: wrap;
+            font-size: 14px;
+        }
+
+        .badge-id {
+            background: rgba(255, 255, 255, 0.25);
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-weight: bold;
+            letter-spacing: 0.5px;
+        }
+
+        .badge-blood {
+            background: #ff5252;
+            color: white;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-weight: bold;
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .btn-action {
+            background: white;
+            color: #155985;
+            border: none;
+            padding: 11px 20px;
+            border-radius: 20px;
+            font-weight: bold;
+            font-size: 14px;
+            cursor: pointer;
+            transition: 0.2s;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-action:hover {
+            background: #eaf6ff;
+            transform: translateY(-2px);
+        }
+
+        .btn-action.btn-qr {
+            background: #35aa9a;
+            color: white;
+        }
+
+        .btn-action.btn-qr:hover {
+            background: #2b8e80;
+        }
+
+        /* DIGITAL HEALTH CARD & QR GENERATOR HERO */
+        .digital-id-card-wrapper {
+            background: white;
+            border-radius: 24px;
+            padding: 30px;
+            box-shadow: 0 6px 25px rgba(0,0,0,0.06);
+            margin-bottom: 30px;
+            border: 2px solid #e1eff8;
+        }
+
+        .card-header-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #f0f6fa;
+            padding-bottom: 12px;
+        }
+
+        .card-header-bar h3 {
+            font-size: 20px;
+            color: #155985;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .card-inner-grid {
+            display: grid;
+            grid-template-columns: 1.2fr 1fr;
+            gap: 30px;
+            align-items: center;
+        }
+
+        /* Real Physical Card Mockup */
+        .smart-card {
+            background: linear-gradient(135deg, #0d3859 0%, #17547d 60%, #1e8275 100%);
+            border-radius: 20px;
+            padding: 26px;
+            color: white;
+            box-shadow: 0 12px 30px rgba(13, 56, 89, 0.3);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .smart-card::before {
+            content: "MEDICARE";
+            position: absolute;
+            right: -20px;
+            bottom: -20px;
+            font-size: 80px;
+            font-weight: 900;
+            color: rgba(255, 255, 255, 0.04);
+            pointer-events: none;
+            letter-spacing: 5px;
+        }
+
+        .smart-card-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .smart-card-brand {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 18px;
+            font-weight: bold;
+            letter-spacing: 0.5px;
+        }
+
+        .chip-icon {
+            width: 38px;
+            height: 28px;
+            background: #d4af37;
+            border-radius: 6px;
+            box-shadow: inset 0 0 4px rgba(0,0,0,0.3);
+        }
+
+        .smart-card-body {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            margin-top: 15px;
+        }
+
+        .patient-card-name {
+            font-size: 20px;
+            font-weight: bold;
+            margin-bottom: 4px;
+        }
+
+        .patient-card-num {
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 16px;
+            letter-spacing: 2px;
+            opacity: 0.9;
+            margin-bottom: 8px;
+        }
+
+        .card-pills {
+            display: flex;
+            gap: 8px;
+            margin-top: 10px;
+        }
+
+        .card-pill {
+            background: rgba(255, 255, 255, 0.2);
+            padding: 3px 10px;
+            border-radius: 8px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .card-pill-emergency {
+            background: rgba(255, 77, 77, 0.9);
+        }
+
+        /* QR Generator Output Box */
+        .qr-output-box {
+            text-align: center;
+            background: #f8fcff;
+            border: 2px dashed #bfe0f7;
+            border-radius: 20px;
+            padding: 24px;
+        }
+
+        .qr-image-frame {
+            background: white;
+            padding: 12px;
+            border-radius: 16px;
+            display: inline-block;
+            box-shadow: 0 6px 18px rgba(0,0,0,0.08);
+            margin-bottom: 15px;
+        }
+
+        .qr-image-frame img {
+            width: 170px;
+            height: 170px;
+            display: block;
+        }
+
+        .qr-caption {
+            font-size: 13px;
+            color: #60798e;
+            margin-bottom: 16px;
+            line-height: 1.4;
+        }
+
+        .qr-btn-group {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+        }
+
+        .btn-qr-action {
+            padding: 10px 18px;
+            border-radius: 12px;
+            font-size: 13px;
+            font-weight: bold;
+            text-decoration: none;
+            cursor: pointer;
+            border: none;
+            transition: 0.2s;
+        }
+
+        .btn-download {
+            background: #155985;
+            color: white;
+        }
+        .btn-download:hover { background: #0e4265; }
+
+        .btn-print {
+            background: #eaf6ff;
+            color: #155985;
+            border: 1px solid #155985;
+        }
+        .btn-print:hover { background: #d3ebfd; }
+
+        /* Vitals Stat Cards */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 18px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 20px 24px;
+            border-radius: 18px;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.04);
+            display: flex;
+            align-items: center;
+            gap: 18px;
+            border-left: 5px solid #155985;
+        }
+
+        .stat-card:nth-child(2) { border-left-color: #35aa9a; }
+        .stat-card:nth-child(3) { border-left-color: #e57373; }
+        .stat-card:nth-child(4) { border-left-color: #7986cb; }
+
+        .stat-icon {
+            font-size: 28px;
+            width: 50px;
+            height: 50px;
+            border-radius: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #f0f7fb;
+        }
+
+        .stat-card:nth-child(2) .stat-icon { background: #eaf8f1; }
+        .stat-card:nth-child(3) .stat-icon { background: #fdeeee; }
+        .stat-card:nth-child(4) .stat-icon { background: #f0f0ff; }
+
+        .stat-info small {
+            color: #718496;
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            display: block;
+            margin-bottom: 4px;
+        }
+
+        .stat-info strong {
+            font-size: 18px;
+            color: #123f73;
+        }
+
+        /* Content Grid */
+        .content-grid {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 25px;
+        }
+
+        .section-card {
+            background: white;
+            padding: 30px;
+            border-radius: 20px;
+            box-shadow: 0 4px 18px rgba(0,0,0,0.04);
+            margin-bottom: 25px;
+        }
+
+        .section-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 20px;
+            padding-bottom: 12px;
+            border-bottom: 2px solid #f0f4f7;
+        }
+
+        .section-header h3 {
+            font-size: 18px;
+            color: #155985;
+        }
+
+        .section-header span {
+            font-size: 22px;
+        }
+
+        /* Medical Highlight */
+        .medical-highlight {
+            padding: 16px 20px;
+            border-radius: 14px;
+            margin-bottom: 16px;
+        }
+
+        .highlight-allergy {
+            background: #fff4f2;
+            border: 1px solid #ffded9;
+        }
+
+        .highlight-allergy h4 {
+            color: #d32f2f;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 15px;
+            margin-bottom: 6px;
+        }
+
+        .highlight-conditions {
+            background: #fff8e8;
+            border: 1px solid #feecb8;
+        }
+
+        .highlight-conditions h4 {
+            color: #b78103;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 15px;
+            margin-bottom: 6px;
+        }
+
+        .highlight-meds {
+            background: #eaf8f1;
+            border: 1px solid #c9eee0;
+        }
+
+        .highlight-meds h4 {
+            color: #188774;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 15px;
+            margin-bottom: 6px;
+        }
+
+        .medical-highlight p {
+            color: #4a5c6d;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+
+        /* Info Grid */
+        .info-table {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px 24px;
+        }
+
+        .info-item {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .info-label {
+            font-size: 12px;
+            color: #718496;
+            text-transform: uppercase;
+            font-weight: 600;
+        }
+
+        .info-value {
+            font-size: 15px;
+            color: #123f73;
+            font-weight: 500;
+        }
+
+        .full-width {
+            grid-column: 1 / -1;
+        }
+
+        /* Emergency Card */
+        .emergency-card {
+            background: linear-gradient(145deg, #ffffff 0%, #fff7f6 100%);
+            border: 2px solid #ffd4cf;
+        }
+
+        .emergency-header {
+            color: #d32f2f !important;
+        }
+
+        .emergency-badge {
+            background: #d32f2f;
+            color: white;
+            font-size: 11px;
+            padding: 3px 8px;
+            border-radius: 10px;
+            margin-left: auto;
+            text-transform: uppercase;
+            font-weight: bold;
+        }
+
+        .contact-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            margin-top: 15px;
+            width: 100%;
+            padding: 12px;
+            background: #d32f2f;
+            color: white;
+            border-radius: 12px;
+            text-decoration: none;
+            font-weight: bold;
+            font-size: 14px;
+            transition: 0.2s;
+        }
+
+        .contact-btn:hover {
+            background: #b71c1c;
+        }
+
+        /* Edit Modal */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.55);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .modal-box {
+            background: white;
+            width: 100%;
+            max-width: 650px;
+            max-height: 90vh;
+            overflow-y: auto;
+            border-radius: 20px;
+            padding: 35px;
+            box-shadow: 0 15px 40px rgba(0,0,0,0.2);
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 25px;
+            border-bottom: 2px solid #f0f4f7;
+            padding-bottom: 12px;
+        }
+
+        .modal-header h2 {
+            color: #155985;
+            font-size: 22px;
+        }
+
+        .close-btn {
+            background: none;
+            border: none;
+            font-size: 28px;
+            cursor: pointer;
+            color: #718496;
+        }
+
+        .form-group {
+            margin-bottom: 16px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 6px;
+            font-weight: bold;
+            font-size: 13px;
+            color: #123f73;
+        }
+
+        .form-group input, .form-group textarea, .form-group select {
+            width: 100%;
+            padding: 10px 14px;
+            border: 1px solid #d5e0e8;
+            border-radius: 8px;
+            font-size: 14px;
+            outline: none;
+            box-sizing: border-box;
+        }
+
+        .form-group textarea {
+            height: 70px;
+            resize: vertical;
+        }
+
+        .form-actions {
+            display: flex;
+            gap: 12px;
+            margin-top: 25px;
+        }
+
+        .btn-submit {
+            flex: 1;
+            padding: 12px;
+            background: #155985;
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .btn-cancel {
+            padding: 12px 20px;
+            background: #eee;
+            color: #555;
+            border: none;
+            border-radius: 10px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .alert {
+            padding: 14px 20px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .alert-success {
+            background: #eaf8f1;
+            color: #188774;
+            border: 1px solid #c9eee0;
+        }
+
+        footer {
+            text-align: center;
+            padding: 30px;
+            color: #718496;
+            font-size: 14px;
+        }
+
+        @media (max-width: 850px) {
+            .content-grid, .card-inner-grid {
+                grid-template-columns: 1fr;
+            }
+            .profile-banner {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+            .header-actions {
+                width: 100%;
+            }
+            .btn-action {
+                flex: 1;
+                justify-content: center;
+            }
+            .info-table {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media print {
+            header, .back-bar, .header-actions, .qr-btn-group, footer, .modal-overlay {
+                display: none !important;
+            }
+            .container {
+                width: 100%;
+                margin: 0;
+            }
+            .digital-id-card-wrapper {
+                page-break-after: always;
+                border: 2px solid #000;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<header>
+    <a href="/" class="logo">
+        <div class="logo-icon">♡</div>
+        <h1>Medicare</h1>
+    </a>
+
+    <div class="nav-links">
+        <a class="nav-link" href="/">Home</a>
+        <a class="nav-link" href="/dashboard">Dashboard</a>
+        
+        <a class="nav-link" href="/card/{{ patient.id }}" style="color:#155985; font-weight:bold;">🪪 ID Card View</a>
+        <a class="nav-link" href="/family-history">Family History</a>
+        <a class="nav-link" href="/medical-records">Medical Records</a>
+        <a class="btn-outline" href="/logout">Logout</a>
+    </div>
+</header>
+
+<div class="container">
+
+    <div class="back-bar">
+        <a href="/dashboard" class="back-link">← Back to Dashboard</a>
+        <span style="color:#718496; font-size:14px;">Medicare Emergency Health Card Generator</span>
+    </div>
+
+    {% if message %}
+    <div class="alert alert-success">
+        ✓ {{ message }}
+    </div>
+    {% endif %}
+
+    <!-- 1. PATIENT HEADER BANNER -->
+    <div class="profile-banner">
+        <div class="patient-identity">
+            <div class="avatar">
+                {{ patient.full_name[0] if patient.full_name else 'P' }}
+            </div>
+            <div class="patient-details">
+                <h2>{{ patient.full_name or 'Patient Name' }}</h2>
+                <div class="patient-meta">
+                    <span class="badge-id">ID: P{{ "%05d"|format(patient.id|int) if patient.id else '00001' }}</span>
+                    {% if patient.blood_group %}
+                    <span class="badge-blood">🩸 {{ patient.blood_group }}</span>
+                    {% endif %}
+                    <span>• {{ patient.gender or 'Not Specified' }}</span>
+                    <span>• {{ patient.age or '--' }} Yrs</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="header-actions">
+            <button class="btn-action btn-qr" onclick="scrollToQR()">
+                📱 View Emergency QR Card
+            </button>
+            <button class="btn-action" onclick="openEditModal()">
+                ✏️ Edit Details
+            </button>
+            <button class="btn-action" onclick="window.print()">
+                🖨️ Print Card
+            </button>
+        </div>
+    </div>
+
+    <!-- 2. DIGITAL MEDICARE ID CARD & QR CODE GENERATOR SECTION -->
+    <div class="digital-id-card-wrapper" id="qrCardSection">
+        <div class="card-header-bar">
+            <h3><span>🪪</span> Official Medicare Digital Health Card & QR Generator</h3>
+            <span style="font-size: 13px; color: #35aa9a; font-weight: bold;">● Active Status</span>
+        </div>
+
+        <div class="card-inner-grid">
+
+            <!-- Physical Style ID Card Mockup -->
+            <div class="smart-card">
+                <div class="smart-card-top">
+                    <div class="smart-card-brand">
+                        <span>♡</span> MEDICARE EMERGENCY PASS
+                    </div>
+                    <div class="chip-icon"></div>
+                </div>
+
+                <div class="patient-card-name">{{ patient.full_name or 'Eleanor Vance' }}</div>
+                <div class="patient-card-num">P{{ "%05d"|format(patient.id|int) if patient.id else '00001' }} • HEALTH ID</div>
+
+                <div class="card-pills">
+                    <span class="card-pill">🩸 Blood: {{ patient.blood_group or 'N/A' }}</span>
+                    <span class="card-pill">DOB: {{ patient.dob or 'N/A' }}</span>
+                    <span class="card-pill card-pill-emergency">🚨 Emergency Ready</span>
+                </div>
+
+                <div class="smart-card-body">
+                    <div>
+                        <div style="font-size: 11px; opacity: 0.8; margin-top: 10px;">EMERGENCY CONTACT</div>
+                        <div style="font-size: 13px; font-weight: bold;">
+                            {{ patient.emergency_name or 'Not Assigned' }} ({{ patient.emergency_number or 'N/A' }})
+                        </div>
+                    </div>
+                    <div style="text-align: right; font-size: 11px; opacity: 0.7;">
+                        VALID WORLDWIDE
+                    </div>
+                </div>
+            </div>
+
+            <!-- Dynamic QR Code Generated -->
+            <div class="qr-output-box">
+                <div class="qr-image-frame">
+                    {% if qr_base64 %}
+                    <img src="{{ qr_base64 }}" alt="Patient Emergency QR Code">
+                    {% else %}
+                    <div style="width: 170px; height: 170px; display: flex; align-items: center; justify-content: center; color: #999;">
+                        Generating QR...
+                    </div>
+                    {% endif %}
+                </div>
+
+                <div class="qr-caption">
+                    <strong>Scan for Instant Paramedic Access:</strong><br>
+                    Encodes vital blood type, critical allergies, chronic conditions, and emergency family contact numbers.
+                </div>
+
+                <div class="qr-btn-group">
+                    <a href="/qr/{{ patient.id }}?download=1" class="btn-qr-action btn-download">
+                        ⬇️ Download QR (PNG)
+                    </a>
+                    <button onclick="window.print()" class="btn-qr-action btn-print">
+                        🖨️ Print ID Card
+                    </button>
+                </div>
+            </div>
+
+
+    <!-- PHOTO-REALISTIC MEDICAL ID CARD (MATCHING USER PHOTO) -->
+    <div style="margin-top:25px; padding-top:25px; border-top:1px dashed #cde2f0;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px; flex-wrap:wrap; gap:10px;">
+            <div>
+                <h4 style="color:#0b5c92; font-size:16px; margin:0;">🪪 Official Physical-Style Medical ID Badge</h4>
+                <small style="color:#60798e;">Standard CR80 format with instant-scan paramedic QR code</small>
+            </div>
+            <div style="display:flex; gap:10px;">
+                <a href="/card/{{ patient.id }}" class="btn-qr-action btn-download" style="text-decoration:none; font-size:12px; padding:8px 16px;">
+                    🔍 Fullscreen / Print Card
+                </a>
+            </div>
+        </div>
+
+        <div style="display:flex; justify-content:center;">
+            <div style="width:100%; max-width:500px; background:#ffffff; border-radius:16px; overflow:hidden; box-shadow:0 12px 30px rgba(0,0,0,0.1); border:1px solid #d0e0ed;">
+                <!-- Blue Header -->
+                <div style="background:#0b5c92; color:white; text-align:center; padding:10px; border-bottom:2px solid #084975;">
+                    <div style="font-size:18px; font-weight:800; letter-spacing:1.5px; text-transform:uppercase;">MEDICAL ID CARD</div>
+                    <div style="font-size:11px; font-weight:500; opacity:0.95; margin-top:2px;">Access My Health Record</div>
+                </div>
+
+                <!-- Body -->
+                <div style="padding:18px 20px; display:flex; justify-content:space-between; align-items:center; gap:15px; background:#fff;">
+                    <!-- Left -->
+                    <div style="flex:1;">
+                        <div style="display:flex; align-items:center; gap:8px; margin-bottom:6px;">
+                            <span style="font-size:22px; color:#0b5c92;">✚</span>
+                            <span style="font-size:20px; font-weight:900; color:#0b5c92; letter-spacing:-0.5px;">Medicare<span style="color:#199785; font-weight:700;">ID</span></span>
+                        </div>
+                        <div style="font-size:11px; color:#60798e; margin-bottom:8px;">
+                            View User Profile:<br>
+                            <strong style="color:#0b5c92; font-size:11px; word-break:break-all;">http://127.0.0.1:5000/health-profile/{{ patient.id }}</strong>
+                        </div>
+                        <div style="font-size:16px; font-weight:800; color:#123f73; margin-bottom:4px;">{{ patient.full_name }}</div>
+                        <div style="font-size:11px; color:#425f7e; margin-bottom:6px;">
+                            <strong>ID:</strong> P{{ "%05d"|format(patient.id|int) }} &bull; 
+                            <strong>Blood:</strong> <span style="background:#ffebee; color:#c62828; font-weight:bold; padding:1px 6px; border-radius:4px;">{{ patient.blood_group or 'N/A' }}</span> &bull; 
+                            <strong>DOB:</strong> {{ patient.dob or 'N/A' }}
+                        </div>
+                        <div style="font-size:10px; background:#fff3f3; border-left:3px solid #d32f2f; padding:5px 8px; border-radius:4px; color:#721c24;">
+                            <strong>🚨 Emergency:</strong> {{ patient.emergency_name or 'N/A' }} ({{ patient.emergency_number or 'N/A' }})
+                        </div>
+                    </div>
+
+                    <!-- Right: QR + SCAN badge -->
+                    <div style="display:flex; flex-direction:column; align-items:center;">
+                        <div style="background:#fff; border:2px solid #0b5c92; border-radius:10px; padding:6px;">
+                            <img src="{{ qr_base64 }}" alt="QR" style="width:125px; height:125px; display:block;">
+                        </div>
+                        <div style="background:#0b5c92; color:white; font-size:11px; font-weight:800; letter-spacing:1px; padding:4px 18px; border-radius:15px; margin-top:6px;">
+                            SCAN
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+        </div>
+    </div>
+
+    <!-- 3. QUICK STATS -->
+    <div class="stats-grid">
+        <div class="stat-card">
+            <div class="stat-icon">🩸</div>
+            <div class="stat-info">
+                <small>Blood Type</small>
+                <strong>{{ patient.blood_group or 'Not Recorded' }}</strong>
+            </div>
+        </div>
+
+        <div class="stat-card">
+            <div class="stat-icon">🎂</div>
+            <div class="stat-info">
+                <small>Age & Birth Date</small>
+                <strong>{{ patient.age or '--' }} yrs ({{ patient.dob or 'N/A' }})</strong>
+            </div>
+        </div>
+
+        <div class="stat-card">
+            <div class="stat-icon">📞</div>
+            <div class="stat-info">
+                <small>Contact Mobile</small>
+                <strong>{{ patient.mobile or 'N/A' }}</strong>
+            </div>
+        </div>
+
+        <div class="stat-card">
+            <div class="stat-icon">🚨</div>
+            <div class="stat-info">
+                <small>Emergency Contact</small>
+                <strong>{{ patient.emergency_name or 'Not Listed' }}</strong>
+            </div>
+        </div>
+    </div>
+
+    <!-- 4. MAIN DETAILS GRID -->
+    <div class="content-grid">
+
+        <!-- Left Column -->
+        <div>
+            <!-- Medical Summary Section -->
+            <div class="section-card">
+                <div class="section-header">
+                    <span>🩺</span>
+                    <h3>Medical Summary & Conditions</h3>
+                </div>
+
+                <div class="medical-highlight highlight-allergy">
+                    <h4>⚠️ Known Allergies</h4>
+                    <p>{{ patient.allergies if patient.allergies else 'No known allergies reported.' }}</p>
+                </div>
+
+                <div class="medical-highlight highlight-conditions">
+                    <h4>📋 Existing Medical Conditions</h4>
+                    <p>{{ patient.existing_conditions if patient.existing_conditions else 'No pre-existing conditions recorded.' }}</p>
+                </div>
+
+                <div class="medical-highlight highlight-meds">
+                    <h4>💊 Current Medications</h4>
+                    <p>{{ patient.current_medications if patient.current_medications else 'No ongoing medications listed.' }}</p>
+                </div>
+            </div>
+
+            <!-- Demographics -->
+            <div class="section-card">
+                <div class="section-header">
+                    <span>👤</span>
+                    <h3>Personal Information</h3>
+                </div>
+
+                <div class="info-table">
+                    <div class="info-item">
+                        <span class="info-label">Full Name</span>
+                        <span class="info-value">{{ patient.full_name or 'N/A' }}</span>
+                    </div>
+
+                    <div class="info-item">
+                        <span class="info-label">Date of Birth</span>
+                        <span class="info-value">{{ patient.dob or 'N/A' }}</span>
+                    </div>
+
+                    <div class="info-item">
+                        <span class="info-label">Age</span>
+                        <span class="info-value">{{ patient.age or 'N/A' }} Years</span>
+                    </div>
+
+                    <div class="info-item">
+                        <span class="info-label">Gender</span>
+                        <span class="info-value">{{ patient.gender or 'N/A' }}</span>
+                    </div>
+
+                    <div class="info-item">
+                        <span class="info-label">Marital Status</span>
+                        <span class="info-value">{{ patient.marital_status or 'N/A' }}</span>
+                    </div>
+
+                    <div class="info-item">
+                        <span class="info-label">Occupation</span>
+                        <span class="info-value">{{ patient.occupation or 'N/A' }}</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Address and Contact Details -->
+            <div class="section-card">
+                <div class="section-header">
+                    <span>📍</span>
+                    <h3>Residential & Contact Info</h3>
+                </div>
+
+                <div class="info-table">
+                    <div class="info-item">
+                        <span class="info-label">Primary Mobile</span>
+                        <span class="info-value">{{ patient.mobile or 'N/A' }}</span>
+                    </div>
+
+                    <div class="info-item">
+                        <span class="info-label">Alternate Mobile</span>
+                        <span class="info-value">{{ patient.alternate_mobile or 'N/A' }}</span>
+                    </div>
+
+                    <div class="info-item full-width">
+                        <span class="info-label">Email Address</span>
+                        <span class="info-value">{{ patient.email or 'N/A' }}</span>
+                    </div>
+
+                    <div class="info-item full-width">
+                        <span class="info-label">Street Address</span>
+                        <span class="info-value">{{ patient.address or 'N/A' }}</span>
+                    </div>
+
+                    <div class="info-item">
+                        <span class="info-label">City</span>
+                        <span class="info-value">{{ patient.city or 'N/A' }}</span>
+                    </div>
+
+                    <div class="info-item">
+                        <span class="info-label">State</span>
+                        <span class="info-value">{{ patient.state or 'N/A' }}</span>
+                    </div>
+
+                    <div class="info-item">
+                        <span class="info-label">PIN Code</span>
+                        <span class="info-value">{{ patient.pin_code or 'N/A' }}</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Column -->
+        <div>
+            <!-- Emergency Contact Card -->
+            <div class="section-card emergency-card">
+                <div class="section-header">
+                    <span>🚨</span>
+                    <h3 class="emergency-header">Emergency Contact</h3>
+                    <span class="emergency-badge">Priority</span>
+                </div>
+
+                <div class="info-table" style="grid-template-columns: 1fr;">
+                    <div class="info-item">
+                        <span class="info-label">Contact Person</span>
+                        <span class="info-value" style="font-size: 16px; font-weight: bold;">
+                            {{ patient.emergency_name or 'None Assigned' }}
+                        </span>
+                    </div>
+
+                    <div class="info-item">
+                        <span class="info-label">Relationship</span>
+                        <span class="info-value">
+                            {{ patient.emergency_relationship or 'N/A' }}
+                        </span>
+                    </div>
+
+                    <div class="info-item">
+                        <span class="info-label">Emergency Phone Number</span>
+                        <span class="info-value" style="color: #d32f2f; font-weight: bold; font-size: 16px;">
+                            {{ patient.emergency_number or 'N/A' }}
+                        </span>
+                    </div>
+                </div>
+
+                {% if patient.emergency_number %}
+                <a href="tel:{{ patient.emergency_number }}" class="contact-btn">
+                    📞 Call Emergency Contact
+                </a>
+                {% endif %}
+            </div>
+
+            <!-- Quick Modules Navigation -->
+            <div class="section-card">
+                <div class="section-header">
+                    <span>📂</span>
+                    <h3>Related Medical Modules</h3>
+                </div>
+
+                <div style="display: flex; flex-direction: column; gap: 10px;">
+                    <a href="/family-history" class="btn-outline" style="text-align: center; border-radius: 12px; padding: 12px;">
+                        👨‍👩‍👧‍👦 Family Medical History
+                    </a>
+                    <a href="/genetic-history" class="btn-outline" style="text-align: center; border-radius: 12px; padding: 12px;">
+                        🧬 Genetic & Hereditary History
+                    </a>
+                    <a href="/medical-records" class="btn-outline" style="text-align: center; border-radius: 12px; padding: 12px;">
+                        📋 Prescriptions & Lab Reports
+                    </a>
+                    <button onclick="openEditModal()" class="btn-outline" style="background:#155985; color:white; border-radius:12px; padding:12px; cursor:pointer;">
+                        ✏️ Edit Health Information
+                    </button>
+                </div>
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+<!-- EDIT PROFILE MODAL -->
+<div class="modal-overlay" id="editModal">
+    <div class="modal-box">
+        <div class="modal-header">
+            <h2>Edit Health Profile</h2>
+            <button class="close-btn" onclick="closeEditModal()">&times;</button>
+        </div>
+
+        <form action="/update-health-profile" method="POST">
+            <input type="hidden" name="patient_id" value="{{ patient.id or '' }}">
+
+            <div class="form-group">
+                <label>Full Name *</label>
+                <input type="text" name="full_name" value="{{ patient.full_name or '' }}" required>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                <div class="form-group">
+                    <label>Age</label>
+                    <input type="number" name="age" value="{{ patient.age or '' }}">
+                </div>
+                <div class="form-group">
+                    <label>Blood Group</label>
+                    <select name="blood_group">
+                        <option value="">Select Blood Group</option>
+                        {% for bg in ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'] %}
+                        <option value="{{ bg }}" {% if patient.blood_group == bg %}selected{% endif %}>{{ bg }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                <div class="form-group">
+                    <label>Mobile Number</label>
+                    <input type="tel" name="mobile" value="{{ patient.mobile or '' }}" required>
+                </div>
+                <div class="form-group">
+                    <label>Email</label>
+                    <input type="email" name="email" value="{{ patient.email or '' }}">
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>Street Address</label>
+                <input type="text" name="address" value="{{ patient.address or '' }}">
+            </div>
+
+            <div class="form-group">
+                <label>Known Allergies (Crucial for Emergency QR)</label>
+                <textarea name="allergies">{{ patient.allergies or '' }}</textarea>
+            </div>
+
+            <div class="form-group">
+                <label>Existing Medical Conditions</label>
+                <textarea name="existing_conditions">{{ patient.existing_conditions or '' }}</textarea>
+            </div>
+
+            <div class="form-group">
+                <label>Current Medications</label>
+                <textarea name="current_medications">{{ patient.current_medications or '' }}</textarea>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                <div class="form-group">
+                    <label>Emergency Contact Name</label>
+                    <input type="text" name="emergency_name" value="{{ patient.emergency_name or '' }}">
+                </div>
+                <div class="form-group">
+                    <label>Emergency Relationship</label>
+                    <input type="text" name="emergency_relationship" value="{{ patient.emergency_relationship or '' }}">
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>Emergency Phone Number</label>
+                <input type="tel" name="emergency_number" value="{{ patient.emergency_number or '' }}">
+            </div>
+
+            <div class="form-actions">
+                <button type="submit" class="btn-submit">Save & Update QR Profile</button>
+                <button type="button" class="btn-cancel" onclick="closeEditModal()">Cancel</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<footer>
+    ♡ Medicare Healthcare Management System • Secure Patient Records with Smart QR Cards
+</footer>
+
+<script>
+function openEditModal() {
+    document.getElementById('editModal').style.display = 'flex';
+}
+
+function closeEditModal() {
+    document.getElementById('editModal').style.display = 'none';
+}
+
+function scrollToQR() {
+    document.getElementById('qrCardSection').scrollIntoView({ behavior: 'smooth' });
+}
+
+window.onclick = function(event) {
+    const modal = document.getElementById('editModal');
+    if (event.target === modal) {
+        modal.style.display = 'none';
+    }
+}
+</script>
+
+</body>
+</html>

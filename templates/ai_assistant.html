@@ -1,0 +1,486 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Offline AI Health Assistant - Medicare</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: Arial, sans-serif;
+            background: #f4f8fb;
+            color: #123f73;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        header {
+            padding: 18px 6%;
+            background: white;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 3px 15px rgba(0,0,0,0.06);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            text-decoration: none;
+            color: #123f73;
+        }
+
+        .logo-icon {
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            background: #188774;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+        }
+
+        .logo h1 { font-size: 22px; }
+        .ai-badge {
+            background: #eaf8f1;
+            color: #188774;
+            font-size: 12px;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-weight: bold;
+            letter-spacing: 0.5px;
+            margin-left: 8px;
+        }
+
+        .nav-links { display: flex; gap: 18px; align-items: center; }
+        .nav-link { color: #155985; text-decoration: none; font-weight: 600; font-size: 14px; }
+        .nav-link:hover { text-decoration: underline; }
+
+        .container {
+            width: 90%;
+            max-width: 950px;
+            margin: 25px auto 40px auto;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .top-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .patient-context-pill {
+            background: #eaf6ff;
+            border: 1px solid #cce5ff;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 13px;
+            color: #155985;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        /* Chat Window */
+        .chat-card {
+            background: white;
+            border-radius: 24px;
+            box-shadow: 0 8px 30px rgba(0,0,0,0.06);
+            display: flex;
+            flex-direction: column;
+            height: 650px;
+            overflow: hidden;
+            border: 1px solid #e1eff8;
+        }
+
+        .chat-header {
+            padding: 20px 25px;
+            background: linear-gradient(135deg, #155985 0%, #1e7ba8 50%, #188774 100%);
+            color: white;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .chat-header h2 {
+            font-size: 18px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .offline-indicator {
+            background: rgba(255, 255, 255, 0.25);
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            background: #2ecc71;
+            border-radius: 50%;
+            box-shadow: 0 0 6px #2ecc71;
+        }
+
+        /* Message Stream */
+        .chat-messages {
+            flex: 1;
+            padding: 25px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 18px;
+            background: #fbfdfd;
+        }
+
+        .message {
+            display: flex;
+            gap: 12px;
+            max-width: 85%;
+            animation: fadeIn 0.25s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(6px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .message.bot {
+            align-self: flex-start;
+        }
+
+        .message.user {
+            align-self: flex-end;
+            flex-direction: row-reverse;
+        }
+
+        .msg-avatar {
+            width: 38px;
+            height: 38px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            flex-shrink: 0;
+        }
+
+        .bot .msg-avatar {
+            background: #eaf8f1;
+            color: #188774;
+            border: 2px solid #bcead8;
+        }
+
+        .user .msg-avatar {
+            background: #155985;
+            color: white;
+        }
+
+        .msg-bubble {
+            padding: 14px 18px;
+            border-radius: 18px;
+            font-size: 14px;
+            line-height: 1.55;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.03);
+            white-space: pre-wrap;
+        }
+
+        .bot .msg-bubble {
+            background: white;
+            color: #123f73;
+            border: 1px solid #eef4f8;
+            border-top-left-radius: 4px;
+        }
+
+        .user .msg-bubble {
+            background: #155985;
+            color: white;
+            border-top-right-radius: 4px;
+        }
+
+        .emergency-bubble {
+            border: 2px solid #ff5252 !important;
+            background: #fff5f5 !important;
+            color: #b71c1c !important;
+        }
+
+        /* Quick Suggestions Chips */
+        .suggestions-bar {
+            padding: 12px 25px;
+            background: #f0f7fb;
+            display: flex;
+            gap: 8px;
+            overflow-x: auto;
+            border-top: 1px solid #e1eff8;
+            scrollbar-width: thin;
+        }
+
+        .chip-btn {
+            background: white;
+            border: 1px solid #bfe0f7;
+            padding: 6px 14px;
+            border-radius: 16px;
+            font-size: 12px;
+            font-weight: 600;
+            color: #155985;
+            cursor: pointer;
+            white-space: nowrap;
+            transition: 0.2s;
+        }
+
+        .chip-btn:hover {
+            background: #155985;
+            color: white;
+            border-color: #155985;
+        }
+
+        /* Input Bar */
+        .chat-input-area {
+            padding: 18px 25px;
+            background: white;
+            border-top: 1px solid #eef4f8;
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+
+        .chat-input-area input {
+            flex: 1;
+            padding: 14px 20px;
+            border: 1px solid #d5e0e8;
+            border-radius: 25px;
+            font-size: 14px;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        .chat-input-area input:focus {
+            border-color: #35aa9a;
+        }
+
+        .send-btn {
+            background: #188774;
+            color: white;
+            border: none;
+            padding: 14px 24px;
+            border-radius: 25px;
+            font-weight: bold;
+            font-size: 14px;
+            cursor: pointer;
+            transition: 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .send-btn:hover {
+            background: #136a5b;
+            transform: translateY(-1px);
+        }
+
+        footer {
+            text-align: center;
+            padding: 20px;
+            color: #718496;
+            font-size: 13px;
+        }
+    </style>
+</head>
+<body>
+
+<header>
+    <a href="/" class="logo">
+        <div class="logo-icon">♡</div>
+        <h1>Medicare</h1>
+        <span class="ai-badge">Offline AI Health Assistant</span>
+    </a>
+
+    <div class="nav-links">
+        <a class="nav-link" href="/">Home</a>
+        <a class="nav-link" href="/dashboard">Dashboard</a>
+        <a class="nav-link" href="/health-profile">Health Profile</a>
+        <a class="nav-link" href="/logout">Logout</a>
+    </div>
+</header>
+
+<div class="container">
+
+    <div class="top-bar">
+        <a href="/dashboard" style="color: #155985; font-weight: 600; text-decoration: none; font-size: 14px;">
+            ← Back to Dashboard
+        </a>
+
+        <div class="patient-context-pill">
+            <span>👤 Profile Context:</span>
+            <strong>{{ patient.full_name or 'Patient' }}</strong>
+            <span>• Blood: {{ patient.blood_group or 'O+' }}</span>
+            <span>• Allergies: {{ patient.allergies[:30] + '...' if patient.allergies and patient.allergies|length > 30 else (patient.allergies or 'None') }}</span>
+        </div>
+    </div>
+
+    <!-- MAIN CHAT CARD -->
+    <div class="chat-card">
+
+        <div class="chat-header">
+            <h2>
+                <span>🤖</span> Medicare Medical AI Assistant
+            </h2>
+            <div class="offline-indicator">
+                <div class="status-dot"></div>
+                100% Offline • Zero API Cost
+            </div>
+        </div>
+
+        <!-- MESSAGES FEED -->
+        <div class="chat-messages" id="chatFeed">
+            <div class="message bot">
+                <div class="msg-avatar">🤖</div>
+                <div class="msg-bubble">
+Hello <strong>{{ patient.full_name or 'Patient' }}</strong>! 👋 I am your Medicare Offline Clinical Assistant.
+
+I am aware of your health profile (Blood Group: {{ patient.blood_group or 'Recorded' }}).
+You can ask me about:
+• Checking allergy contraindications before taking medicine
+• Evaluating common symptoms (fever, cough, headache)
+• Chronic condition guidance (Diabetes, Asthma, Blood Pressure)
+• Step-by-step emergency first-aid protocols
+
+How may I assist your health today?
+                </div>
+            </div>
+        </div>
+
+        <!-- QUICK CHIPS -->
+        <div class="suggestions-bar" id="suggestionBar">
+            <button class="chip-btn" onclick="sendSuggestion('Can I take penicillin?')">⚠️ Check Penicillin Allergy</button>
+            <button class="chip-btn" onclick="sendSuggestion('What is the first aid for an asthma attack?')">🫁 Asthma First Aid</button>
+            <button class="chip-btn" onclick="sendSuggestion('What are healthy blood pressure levels?')">❤️ Blood Pressure Chart</button>
+            <button class="chip-btn" onclick="sendSuggestion('How to treat a burn at home?')">🩹 Burn First Aid</button>
+            <button class="chip-btn" onclick="sendSuggestion('What should I do for high fever?')">🌡️ High Fever Care</button>
+            <button class="chip-btn" onclick="sendSuggestion('Show my health profile summary')">👤 My Health Profile</button>
+        </div>
+
+        <!-- INPUT FIELD -->
+        <form class="chat-input-area" onsubmit="handleSend(event)">
+            <input type="text" id="userInput" placeholder="Ask about symptoms, medications, first-aid..." autocomplete="off" required>
+            <button type="submit" class="send-btn">
+                Send 💬
+            </button>
+        </form>
+
+    </div>
+
+</div>
+
+<footer>
+    ♡ Medicare Healthcare Management System • Privacy-Preserving Offline AI • Instant Guidance
+</footer>
+
+<script>
+async function handleSend(e) {
+    if (e) e.preventDefault();
+    const input = document.getElementById('userInput');
+    const text = input.value.trim();
+    if (!text) return;
+
+    appendMessage(text, 'user');
+    input.value = '';
+
+    // Typing placeholder
+    const typingId = appendTypingIndicator();
+
+    try {
+        const response = await fetch('/api/ai-chat', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ query: text })
+        });
+        const data = await response.json();
+        removeTypingIndicator(typingId);
+
+        appendMessage(data.reply, 'bot', data.level === 'emergency');
+
+        // Update suggestion chips if provided
+        if (data.suggestions && data.suggestions.length > 0) {
+            updateChips(data.suggestions);
+        }
+    } catch (err) {
+        removeTypingIndicator(typingId);
+        appendMessage("I am temporarily unavailable. Please try again or check emergency services.", 'bot');
+    }
+}
+
+function sendSuggestion(text) {
+    document.getElementById('userInput').value = text;
+    handleSend();
+}
+
+function appendMessage(text, sender, isEmergency = false) {
+    const feed = document.getElementById('chatFeed');
+    const msgDiv = document.createElement('div');
+    msgDiv.className = `message ${sender}`;
+
+    const avatar = document.createElement('div');
+    avatar.className = 'msg-avatar';
+    avatar.textContent = sender === 'bot' ? '🤖' : '👤';
+
+    const bubble = document.createElement('div');
+    bubble.className = `msg-bubble ${isEmergency ? 'emergency-bubble' : ''}`;
+    bubble.textContent = text;
+
+    msgDiv.appendChild(avatar);
+    msgDiv.appendChild(bubble);
+    feed.appendChild(msgDiv);
+    feed.scrollTop = feed.scrollHeight;
+}
+
+function appendTypingIndicator() {
+    const feed = document.getElementById('chatFeed');
+    const id = 'typing_' + Date.now();
+    const typingDiv = document.createElement('div');
+    typingDiv.id = id;
+    typingDiv.className = 'message bot';
+    typingDiv.innerHTML = `<div class="msg-avatar">🤖</div><div class="msg-bubble" style="color: #718496; font-style: italic;">Consulting clinical guidelines...</div>`;
+    feed.appendChild(typingDiv);
+    feed.scrollTop = feed.scrollHeight;
+    return id;
+}
+
+function removeTypingIndicator(id) {
+    const el = document.getElementById(id);
+    if (el) el.remove();
+}
+
+function updateChips(suggestions) {
+    const bar = document.getElementById('suggestionBar');
+    bar.innerHTML = '';
+    suggestions.forEach(s => {
+        const btn = document.createElement('button');
+        btn.className = 'chip-btn';
+        btn.textContent = s;
+        btn.onclick = () => sendSuggestion(s);
+        bar.appendChild(btn);
+    });
+}
+</script>
+
+</body>
+</html>

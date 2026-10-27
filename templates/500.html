@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Internal Server Error - Medicare</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: Arial, sans-serif;
+            background: #f6fbfb;
+            color: #123f73;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        .error-card {
+            background: white;
+            padding: 40px 35px;
+            border-radius: 24px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+            max-width: 650px;
+            width: 100%;
+            text-align: center;
+        }
+        .code {
+            font-size: 64px;
+            font-weight: 900;
+            color: #e57373;
+            line-height: 1;
+            margin-bottom: 12px;
+        }
+        h2 { font-size: 22px; margin-bottom: 10px; color: #155985; }
+        p { color: #60798e; font-size: 14px; line-height: 1.5; margin-bottom: 20px; }
+        .error-box {
+            text-align: left;
+            background: #fff5f5;
+            border: 1px solid #ffd4d4;
+            border-radius: 12px;
+            padding: 15px;
+            margin-bottom: 25px;
+            font-family: monospace;
+            font-size: 13px;
+            color: #c62828;
+            word-break: break-all;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        .btn-group {
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+        .btn {
+            display: inline-block;
+            background: #155985;
+            color: white;
+            padding: 12px 24px;
+            border-radius: 25px;
+            text-decoration: none;
+            font-weight: bold;
+            font-size: 14px;
+            transition: 0.2s;
+        }
+        .btn:hover { background: #0e4265; }
+        .btn-secondary {
+            background: #eaf6ff;
+            color: #155985;
+            border: 1px solid #155985;
+        }
+        .btn-secondary:hover { background: #d0e8fc; }
+    </style>
+</head>
+<body>
+    <div class="error-card">
+        <div class="code">500</div>
+        <h2>Server Error Encountered</h2>
+        <p>An unexpected error occurred while processing your request:</p>
+        
+        {% if error_details %}
+        <div class="error-box">
+            <strong>Exception:</strong> {{ error_details }}
+            {% if traceback_str %}
+            <pre style="margin-top:10px; font-size:11px; white-space:pre-wrap;">{{ traceback_str }}</pre>
+            {% endif %}
+        </div>
+        {% endif %}
+
+        <div class="btn-group">
+            <a href="/" class="btn">← Back to Home</a>
+            <a href="/login" class="btn btn-secondary">Login Page</a>
+            <a href="/dashboard" class="btn btn-secondary">Dashboard</a>
+
+        </div>
+    </div>
+</body>
+</html>

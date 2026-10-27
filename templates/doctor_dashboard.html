@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Doctor Portal - Clinical Care & Records | Medicare</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background: #f4f8fb; color: #123f73; min-height: 100vh; }
+        header {
+            padding: 18px 6%; background: white; display: flex; justify-content: space-between;
+            align-items: center; box-shadow: 0 3px 15px rgba(0,0,0,0.06); position: sticky; top: 0; z-index: 100;
+        }
+        .logo { display: flex; align-items: center; gap: 10px; text-decoration: none; color: #123f73; }
+        .logo-icon {
+            width: 44px; height: 44px; border-radius: 50%; background: #155985; color: white;
+            display: flex; align-items: center; justify-content: center; font-size: 24px;
+        }
+        .logo h1 { font-size: 22px; }
+        .badge-doc {
+            background: #eaf6ff; color: #155985; padding: 5px 12px; border-radius: 12px;
+            font-size: 13px; font-weight: bold; margin-left: 10px; border: 1px solid #bce0f8;
+        }
+        .nav-links { display: flex; gap: 18px; align-items: center; }
+        .user-tag { font-size: 14px; font-weight: 600; color: #2e597c; }
+        .btn-logout {
+            color: #d9534f; text-decoration: none; font-weight: bold; font-size: 13px;
+            padding: 6px 14px; border-radius: 14px; background: #ffebee; border: 1px solid #ffcdd2;
+        }
+        .btn-logout:hover { background: #ffcdd2; }
+        .container { width: 92%; max-width: 1150px; margin: 35px auto 60px auto; }
+
+        .banner {
+            background: linear-gradient(135deg, #155985 0%, #0d466b 100%);
+            padding: 35px 40px; border-radius: 24px; color: white; margin-bottom: 30px;
+            box-shadow: 0 10px 25px rgba(21, 89, 133, 0.2);
+        }
+        .banner h2 { font-size: 26px; margin-bottom: 8px; }
+        .banner p { font-size: 14px; opacity: 0.9; margin-bottom: 20px; }
+
+        .search-box { display: flex; gap: 12px; max-width: 650px; }
+        .search-box input {
+            flex: 1; padding: 14px 20px; border-radius: 25px; border: none; font-size: 15px; outline: none;
+        }
+        .search-box button {
+            background: #35aa9a; color: white; border: none; padding: 14px 26px;
+            border-radius: 25px; font-weight: bold; font-size: 14px; cursor: pointer; transition: 0.2s;
+        }
+        .search-box button:hover { background: #2b8b7e; }
+
+        .patient-table-card {
+            background: white; border-radius: 20px; padding: 30px;
+            box-shadow: 0 4px 18px rgba(0,0,0,0.04); overflow-x: auto;
+        }
+        .table-header {
+            display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;
+        }
+        .table-header h3 { color: #155985; font-size: 18px; }
+
+        table { width: 100%; border-collapse: collapse; text-align: left; }
+        th {
+            background: #f8fbfe; color: #155985; padding: 14px 16px; font-size: 13px;
+            text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 2px solid #eef3f7;
+        }
+        td { padding: 16px; border-bottom: 1px solid #f0f4f7; font-size: 14px; vertical-align: middle; }
+        tr:hover td { background: #fbfdff; }
+
+        .patient-badge-id {
+            background: #eaf6ff; color: #155985; font-weight: bold; padding: 4px 10px;
+            border-radius: 8px; font-family: monospace; font-size: 13px;
+        }
+        .blood-badge {
+            background: #ffebee; color: #c62828; font-weight: bold; padding: 4px 8px;
+            border-radius: 8px; font-size: 12px;
+        }
+
+        .btn-action {
+            background: #155985; color: white; text-decoration: none; padding: 8px 14px;
+            border-radius: 10px; font-weight: 600; font-size: 12px; transition: 0.2s;
+            display: inline-flex; align-items: center; gap: 4px;
+        }
+        .btn-action:hover { background: #0e4265; }
+        .btn-rx {
+            background: #188774; color: white; text-decoration: none; padding: 8px 14px;
+            border-radius: 10px; font-weight: 600; font-size: 12px; transition: 0.2s;
+            cursor: pointer; border: none;
+        }
+        .btn-rx:hover { background: #136a5b; }
+
+        /* Prescription Modal */
+        .modal {
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center;
+        }
+        .modal-box {
+            background: white; border-radius: 20px; padding: 30px; max-width: 520px; width: 90%;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+        .modal-box h3 { color: #155985; margin-bottom: 15px; }
+        .form-row { margin-bottom: 12px; text-align: left; }
+        .form-row label { display: block; font-size: 12px; font-weight: bold; color: #155985; margin-bottom: 4px; }
+        .form-row input, .form-row select, .form-row textarea {
+            width: 100%; padding: 10px; border: 1px solid #d5e0e8; border-radius: 8px; font-size: 14px;
+        }
+        footer { text-align: center; padding: 30px; color: #718496; font-size: 13px; }
+    </style>
+</head>
+<body>
+
+<header>
+    <a href="/doctor/dashboard" class="logo">
+        <div class="logo-icon">🩺</div>
+        <h1>Medicare</h1>
+        <span class="badge-doc">Doctor Portal</span>
+    </a>
+    <div class="nav-links">
+        <span class="user-tag">👨‍⚕️ {{ session.get('user_name', 'Attending Physician') }}</span>
+        <a class="btn-logout" href="/logout">Logout</a>
+    </div>
+</header>
+
+<div class="container">
+
+    <div class="banner">
+        <h2>🩺 Clinical Directory & Patient Management</h2>
+        <p>Review authorized patient profiles, inspect recorded allergy contraindications, and record new medical prescriptions or diagnostic reports.</p>
+
+        <form action="/doctor/dashboard" method="GET" class="search-box">
+            <input type="text" name="q" placeholder="Search patients by ID (e.g. P00001), Name, or Mobile..." value="{{ query }}">
+            <button type="submit">🔍 Search Directory</button>
+        </form>
+    </div>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        {% for category, message in messages %}
+          <div style="padding: 12px 18px; border-radius: 10px; margin-bottom: 20px; font-size: 14px; background: #eaf8f1; color: #188774; border: 1px solid #c9eee0;">
+            {{ message }}
+          </div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+
+    <div class="patient-table-card">
+        <div class="table-header">
+            <h3>Registered Patient Records ({{ patients|length }})</h3>
+        </div>
+
+        {% if patients %}
+        <table>
+            <thead>
+                <tr>
+                    <th>Patient ID</th>
+                    <th>Name & Mobile</th>
+                    <th>Age / Gender</th>
+                    <th>Blood</th>
+                    <th>Critical Allergies</th>
+                    <th>Emergency Contact</th>
+                    <th>Clinical Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for p in patients %}
+                <tr>
+                    <td>
+                        <span class="patient-badge-id">P{{ "%05d"|format(p.id|int) }}</span>
+                    </td>
+                    <td>
+                        <strong>{{ p.full_name }}</strong><br>
+                        <small style="color: #718496;">{{ p.mobile }}</small>
+                    </td>
+                    <td>{{ p.age or '--' }} yrs • {{ p.gender or 'N/A' }}</td>
+                    <td>
+                        {% if p.blood_group %}
+                        <span class="blood-badge">{{ p.blood_group }}</span>
+                        {% else %}
+                        --
+                        {% endif %}
+                    </td>
+                    <td style="max-width: 200px; font-size: 13px; color: #c62828;">
+                        {{ p.allergies or 'None reported' }}
+                    </td>
+                    <td>
+                        {{ p.emergency_name or 'N/A' }}<br>
+                        <small style="color: #60798e;">{{ p.emergency_number or '' }}</small>
+                    </td>
+                    <td>
+                        <div style="display: flex; gap: 6px;">
+                            <a href="/health-profile/{{ p.id }}" class="btn-action">
+                                📋 Profile
+                            </a>
+                            <button class="btn-rx" onclick="openRxModal({{ p.id }}, '{{ p.full_name }}')">
+                                ✍️ Prescribe
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <div style="text-align: center; padding: 40px; color: #718496;">
+            No patient matching "{{ query }}" found in your authorized clinical directory.
+        </div>
+        {% endif %}
+    </div>
+
+</div>
+
+<!-- PRESCRIBE MODAL -->
+<div class="modal" id="rxModal">
+    <div class="modal-box">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+            <h3 id="rxTitle">✍️ Add Clinical Record</h3>
+            <span style="font-size: 24px; cursor: pointer;" onclick="closeRxModal()">&times;</span>
+        </div>
+
+        <form action="/doctor/add-record" method="POST">
+            <input type="hidden" id="modalPatientId" name="patient_id" value="">
+
+            <div class="form-row">
+                <label>Record Type</label>
+                <select name="record_type">
+                    <option value="Prescription">Prescription</option>
+                    <option value="Lab Report">Lab Report</option>
+                    <option value="Clinical Observation">Clinical Observation</option>
+                    <option value="Follow-up Note">Follow-up Note</option>
+                </select>
+            </div>
+
+            <div class="form-row">
+                <label>Title / Diagnosis Summary</label>
+                <input type="text" name="title" placeholder="e.g. Antibiotic Course & Blood Test" required>
+            </div>
+
+            <div class="form-row">
+                <label>Hospital / Clinic Name</label>
+                <input type="text" name="hospital_name" value="Medicare Central Hospital" required>
+            </div>
+
+            <div class="form-row">
+                <label>Clinical Notes / Medication Instructions</label>
+                <textarea name="description" rows="3" placeholder="Dosage, frequency, warnings, and follow-up date..." required></textarea>
+            </div>
+
+            <button type="submit" class="btn-action" style="width: 100%; justify-content: center; padding: 12px; margin-top: 10px; background: #188774; font-size: 14px;">
+                Save Clinical Record to Patient File →
+            </button>
+        </form>
+    </div>
+</div>
+
+<script>
+function openRxModal(pId, pName) {
+    document.getElementById("modalPatientId").value = pId;
+    document.getElementById("rxTitle").innerText = "✍️ Prescribe / Record for " + pName;
+    document.getElementById("rxModal").style.display = "flex";
+}
+function closeRxModal() {
+    document.getElementById("rxModal").style.display = "none";
+}
+</script>
+
+<footer>
+    ♡ Medicare Healthcare Management System • Secure Doctor Clinical Portal
+</footer>
+
+</body>
+</html>

@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Doctor Portal - Secure Access | Medicare</title>
+
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    background: #f4f8fb;
+    color: #123f73;
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 25px 15px;
+}
+.card {
+    background: white;
+    max-width: 480px;
+    width: 100%;
+    padding: 38px 32px;
+    border-radius: 24px;
+    box-shadow: 0 10px 30px rgba(21, 89, 133, 0.08);
+    border: 1px solid #ddecfa;
+    text-align: center;
+}
+.icon {
+    width: 66px;
+    height: 66px;
+    margin: 0 auto 16px;
+    border-radius: 50%;
+    background: #eaf6ff;
+    color: #155985;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 32px;
+    border: 2px solid #bce0f8;
+}
+h1 { font-size: 24px; color: #155985; margin-bottom: 6px; }
+.subtitle { font-size: 14px; color: #60798e; margin-bottom: 24px; line-height: 1.4; }
+.badge {
+    display: inline-block;
+    background: #eaf8f1;
+    color: #188774;
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: bold;
+    margin-bottom: 16px;
+}
+.alert {
+    padding: 12px 16px;
+    border-radius: 10px;
+    font-size: 13px;
+    margin-bottom: 18px;
+    text-align: left;
+    font-weight: 500;
+}
+.alert-error { background: #ffebee; color: #c62828; border: 1px solid #ffcdd2; }
+.alert-success { background: #eaf8f1; color: #188774; border: 1px solid #c9eee0; }
+
+.input-group {
+    position: relative;
+    margin-bottom: 14px;
+    text-align: left;
+}
+label {
+    display: block;
+    font-size: 12px;
+    font-weight: bold;
+    color: #155985;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 6px;
+}
+input {
+    width: 100%;
+    padding: 13px 15px;
+    border: 1px solid #d5e0e8;
+    border-radius: 10px;
+    font-size: 14px;
+    outline: none;
+    transition: 0.2s;
+}
+input:focus {
+    border-color: #155985;
+    box-shadow: 0 0 0 3px rgba(21, 89, 133, 0.1);
+}
+.code-wrapper {
+    display: flex;
+    gap: 8px;
+}
+.btn-resend {
+    background: #edf6fd;
+    color: #155985;
+    border: 1px solid #bce0f8;
+    border-radius: 10px;
+    padding: 0 14px;
+    font-size: 12px;
+    font-weight: bold;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: 0.2s;
+}
+.btn-resend:hover { background: #d7edfd; }
+.btn-primary {
+    width: 100%;
+    padding: 14px;
+    border: none;
+    border-radius: 25px;
+    background: #155985;
+    color: white;
+    font-size: 15px;
+    font-weight: bold;
+    cursor: pointer;
+    margin-top: 10px;
+    transition: 0.2s;
+}
+.btn-primary:hover { background: #0d466b; }
+.footer-links {
+    margin-top: 22px;
+    font-size: 13px;
+    display: flex;
+    justify-content: space-between;
+}
+.footer-links a { color: #155985; text-decoration: none; font-weight: 600; }
+.footer-links a:hover { text-decoration: underline; }
+.info-hint {
+    margin-top: 18px;
+    padding: 12px;
+    background: #f8fbfe;
+    border-radius: 10px;
+    font-size: 12px;
+    color: #60798e;
+    text-align: left;
+    border-left: 3px solid #155985;
+}
+</style>
+</head>
+<body>
+
+<div class="card">
+    <div class="icon">🩺</div>
+    <span class="badge">Clinical Access Only</span>
+    <h1>Doctor Portal Login</h1>
+    <p class="subtitle">Access authorized patient medical records and clinical history</p>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        {% for category, message in messages %}
+          <div class="alert alert-{{ 'error' if category == 'error' else 'success' }}">
+            {{ message }}
+          </div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+
+    <div id="ajaxAlert" style="display:none;" class="alert"></div>
+
+    <form action="/doctor/login" method="POST">
+        <div class="input-group">
+            <label>Registered Doctor Email</label>
+            <input type="email" id="docEmail" name="email" placeholder="e.g. dr.sharma@medicare.io" value="{{ prefill_email or 'dr.sharma@medicare.io' }}" required>
+        </div>
+
+        <div class="input-group">
+            <label>Account Password</label>
+            <input type="password" id="docPassword" name="password" placeholder="Enter your password" value="{{ prefill_pw or 'doctor123' }}" required>
+        </div>
+
+        <div class="input-group">
+            <label>System-Generated Doctor Access Code</label>
+            <div class="code-wrapper">
+                <input type="text" name="access_code" placeholder="6-Digit Access Code" maxlength="10" required autocomplete="off">
+                <button type="button" class="btn-resend" onclick="requestDoctorCode()">📧 Request / Resend</button>
+            </div>
+        </div>
+
+        <button type="submit" class="btn-primary">Authenticate & Enter Portal →</button>
+    </form>
+
+    <div class="info-hint">
+        🔒 <strong>Doctor Security Policy:</strong> Every login requires your registered email, password, and a short-lived access code sent to your registered doctor inbox. Multiple failed attempts will lock access.
+    </div>
+
+    <div class="footer-links">
+        <a href="/login">← Patient Login</a>
+        <a href="/authority/login">Authority Portal →</a>
+    </div>
+</div>
+
+<script>
+function requestDoctorCode() {
+    var email = document.getElementById("docEmail").value.trim();
+    var password = document.getElementById("docPassword").value.trim();
+    var alertBox = document.getElementById("ajaxAlert");
+
+    if (!email) {
+        alertBox.style.display = "block";
+        alertBox.className = "alert alert-error";
+        alertBox.innerText = "Please enter your registered email address first.";
+        return;
+    }
+
+    alertBox.style.display = "block";
+    alertBox.className = "alert alert-success";
+    alertBox.innerText = "⏳ Verifying doctor credentials and generating access code...";
+
+    fetch("/doctor/request-code", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: email, password: password })
+    })
+    .then(r => r.json())
+    .then(data => {
+        alertBox.style.display = "block";
+        if (data.success) {
+            alertBox.className = "alert alert-success";
+            alertBox.innerText = "✓ " + data.message;
+        } else {
+            alertBox.className = "alert alert-error";
+            alertBox.innerText = "❌ " + (data.error || "Failed to generate code.");
+        }
+    })
+    .catch(err => {
+        alertBox.style.display = "block";
+        alertBox.className = "alert alert-error";
+        alertBox.innerText = "Network error connecting to verification service.";
+    });
+}
+</script>
+
+</body>
+</html>

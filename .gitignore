@@ -1,0 +1,16 @@
+# Byte-compiled / optimized files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Environment variables (keep credentials private)
+.env
+.env.local
+
+# Local SQLite databases (Medicare uses Cloud MySQL in production)
+*.db
+*.sqlite3
+
+# Operating System Files
+.DS_Store
+Thumbs.db

@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Security Audit Logs - Authority | Medicare</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background: #f7f5fb; color: #2a1b4e; min-height: 100vh; }
+        header {
+            padding: 18px 6%; background: white; display: flex; justify-content: space-between;
+            align-items: center; box-shadow: 0 3px 15px rgba(0,0,0,0.06); position: sticky; top: 0; z-index: 100;
+        }
+        .logo { display: flex; align-items: center; gap: 10px; text-decoration: none; color: #2a1b4e; }
+        .logo-icon {
+            width: 44px; height: 44px; border-radius: 50%; background: #6a1b9a; color: white;
+            display: flex; align-items: center; justify-content: center; font-size: 24px;
+        }
+        .logo h1 { font-size: 22px; }
+        .badge-auth {
+            background: #f3efff; color: #6a1b9a; padding: 5px 12px; border-radius: 12px;
+            font-size: 13px; font-weight: bold; margin-left: 10px; border: 1px solid #debff9;
+        }
+        .nav-links { display: flex; gap: 18px; align-items: center; }
+        .user-tag { font-size: 14px; font-weight: 600; color: #584177; }
+        .btn-logout {
+            color: #d9534f; text-decoration: none; font-weight: bold; font-size: 13px;
+            padding: 6px 14px; border-radius: 14px; background: #ffebee; border: 1px solid #ffcdd2;
+        }
+        .container { width: 92%; max-width: 1150px; margin: 30px auto 60px auto; }
+
+        .tabs {
+            display: flex; gap: 10px; margin-bottom: 25px; border-bottom: 2px solid #ecdcfd; padding-bottom: 10px;
+        }
+        .tab-btn {
+            background: none; border: none; padding: 10px 20px; font-size: 14px; font-weight: bold;
+            color: #6b5c7d; border-radius: 20px; cursor: pointer; text-decoration: none; transition: 0.2s;
+        }
+        .tab-btn.active { background: #6a1b9a; color: white; }
+        .tab-btn:hover:not(.active) { background: #f3efff; color: #6a1b9a; }
+
+        .card {
+            background: white; border-radius: 20px; padding: 30px;
+            box-shadow: 0 4px 18px rgba(0,0,0,0.04);
+        }
+        h2 { font-size: 22px; color: #4a148c; margin-bottom: 8px; }
+        p { font-size: 14px; color: #6b5c7d; margin-bottom: 20px; }
+
+        table { width: 100%; border-collapse: collapse; text-align: left; }
+        th {
+            background: #faf7fd; color: #4a148c; padding: 14px 16px; font-size: 13px;
+            text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 2px solid #f0e6fa;
+        }
+        td { padding: 14px 16px; border-bottom: 1px solid #f5effc; font-size: 13px; vertical-align: middle; }
+        tr:hover td { background: #fdfaff; }
+
+        .badge-status {
+            padding: 4px 8px; border-radius: 8px; font-weight: bold; font-size: 11px; display: inline-block;
+        }
+        .badge-success { background: #eaf8f1; color: #188774; }
+        .badge-failed { background: #ffebee; color: #c62828; }
+        .badge-blocked { background: #fff8e1; color: #b06000; }
+
+        footer { text-align: center; padding: 30px; color: #718496; font-size: 13px; }
+    </style>
+</head>
+<body>
+
+<header>
+    <a href="/authority-dashboard" class="logo">
+        <div class="logo-icon">🏥</div>
+        <h1>Medicare</h1>
+        <span class="badge-auth">Hospital Authority</span>
+    </a>
+    <div class="nav-links">
+        <span class="user-tag">🛡️ {{ session.get('user_name', 'Authority Officer') }}</span>
+        <a class="btn-logout" href="/logout">Logout</a>
+    </div>
+</header>
+
+<div class="container">
+
+    <div class="tabs">
+        <a href="/authority-dashboard" class="tab-btn">📋 Clinical Directory</a>
+        <a href="/authority/doctors" class="tab-btn">🩺 Doctor Approvals & Codes</a>
+        <a href="/authority/audit-logs" class="tab-btn active">🛡️ Security Audit Logs</a>
+    </div>
+
+    <div class="card">
+        <h2>🛡️ Real-Time Security Audit Trail</h2>
+        <p>Immutable log of authentication attempts, access code requests, failed verifications, and account lockouts.</p>
+
+        {% if logs %}
+        <table>
+            <thead>
+                <tr>
+                    <th>Timestamp</th>
+                    <th>Action</th>
+                    <th>Role</th>
+                    <th>IP Address</th>
+                    <th>Status</th>
+                    <th>Event Details</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for log in logs %}
+                <tr>
+                    <td><code>{{ log.timestamp }}</code></td>
+                    <td><strong>{{ log.action }}</strong></td>
+                    <td><span style="text-transform: uppercase; font-size:12px; color:#6b5c7d;">{{ log.user_role or 'Anonymous' }}</span></td>
+                    <td><code>{{ log.ip_address }}</code></td>
+                    <td>
+                        {% if log.status == 'SUCCESS' %}
+                        <span class="badge-status badge-success">SUCCESS</span>
+                        {% elif log.status == 'BLOCKED' %}
+                        <span class="badge-status badge-blocked">BLOCKED</span>
+                        {% else %}
+                        <span class="badge-status badge-failed">{{ log.status }}</span>
+                        {% endif %}
+                    </td>
+                    <td style="color: #444; max-width: 320px; word-break: break-all;">
+                        {{ log.details or '-' }}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <div style="text-align: center; padding: 40px; color: #718496;">
+            No audit events recorded yet.
+        </div>
+        {% endif %}
+    </div>
+
+</div>
+
+<footer>
+    ♡ Medicare Healthcare Management System • Compliance & Security Audit Logging
+</footer>
+
+</body>
+</html>
