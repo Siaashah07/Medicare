@@ -1,177 +1,186 @@
-# 🏥 Medicare — Smart Healthcare Management System & Offline AI
+# Medicare -- Smart Healthcare Management System
 
-A modern, production-ready healthcare management web application featuring:
-- 📱 **Digital Health ID Cards with Dynamic Scannable Emergency QR Codes**
-- 🤖 **100% Offline Clinical AI Health Assistant & Symptom Triage** (Zero external API costs)
-- 👨‍👩‍👧‍👦 **Family Medical History & Multi-Generational Tracking**
-- 🧬 **Genetic & Hereditary Risk Assessment**
-- 📋 **Medical Records & Prescription Archiving**
-- 🏥 **Hospital Authority & Clinical Lookup Portal**
-- 🛡️ **Dual-Engine Resilient Database** (MySQL with zero-config SQLite automatic fallback)
+A modern, production-ready healthcare management web application with role-based access control, two-factor email authentication, and cloud PostgreSQL.
 
----
+## Key Features
 
-## 🌟 Key Features
-
-### 1. Dynamic Emergency QR Health Card Generator
-- Encodes critical first-responder data: Blood group, severe allergies, chronic illnesses, and emergency contacts.
-- Includes a realistic digital smart health pass mockup with instant **PNG Download** and browser **Print Layout**.
-- Scan-to-view paramedic emergency summary without login requirement.
-
-### 2. Offline AI Health Assistant
-- Operates 100% locally with zero external API dependencies or fees.
-- **Personal Profile Context Aware**: Knows the logged-in patient's recorded allergies (e.g. alerts against Penicillin if contraindicated).
-- **Red-Flag Emergency Triage**: Detects stroke signs, chest pain, and critical respiratory distress, immediately triggering emergency contact protocols.
-- **First Aid & Condition Guidance**: Immediate step-by-step guidance for burns, CPR, diabetes care, and blood pressure monitoring.
-
-### 3. Dual-Database Architecture
-- **Primary**: MySQL (`medicare`) with configurable environment variables.
-- **Automated Fallback**: Seamless local SQLite (`medicare.db`) that initializes automatically if MySQL is unavailable, ensuring zero downtime.
+- **Digital Health ID Cards** with dynamic scannable emergency QR codes
+- **Offline AI Health Assistant** -- 100% local clinical symptom triage (zero API costs)
+- **Role-Based Access Control** -- Patient, Doctor, and Authority portals with strict authorization
+- **Two-Factor Authentication (2FA)** -- Email verification codes for Doctor and Authority logins
+- **IDOR Protection** -- Patients can only access their own records; doctors see only assigned patients
+- **Family Medical History** and multi-generational tracking
+- **Genetic and Hereditary Risk Assessment**
+- **Medical Records and Prescription Archiving**
+- **Cloud PostgreSQL Database** powered by Neon.tech
 
 ---
 
-## 🚀 Quick Start (Local Run)
+## Tech Stack
 
-### 1. Clone / Open Project
-```powershell
-cd "C:\Users\shahs\OneDrive\Desktop\Medicare"
+| Layer | Technology |
+|-------|-----------|
+| Backend | Python Flask |
+| Database | PostgreSQL (Neon.tech cloud) with SQLite local fallback |
+| Auth | Werkzeug scrypt hashing + SHA-256 2FA codes + rate limiting |
+| Email | SMTP (configurable provider) |
+| Deployment | Vercel (serverless) |
+| AI | Offline clinical decision engine (no external APIs) |
+
+---
+
+## Quick Start (Local Development)
+
+### 1. Clone the repository
+
+```bash
+git clone https://github.com/Siaashah07/Medicare.git
+cd Medicare
 ```
 
-### 2. Install Dependencies
-```powershell
+### 2. Install dependencies
+
+```bash
 pip install -r requirements.txt
 ```
 
-### 3. Run Development Server
-```powershell
-python run.py
-```
-Your browser will open automatically at `http://127.0.0.1:5000/`.
+### 3. Configure environment
 
----
-
-## 🌐 Production WSGI Serving (Windows & Linux)
-
-For production, run using the multi-threaded WSGI server without debug overhead:
-
-```powershell
-python wsgi.py
-```
-* On Windows, this launches high-concurrency **Waitress**.
-* On Linux/Mac, this serves with **Gunicorn** or Waitress.
-
----
-
-## ☁️ Cloud Deployment Options
-
-### Option A: Deploy to Render (Recommended Free Cloud)
-1. Push your project to GitHub.
-2. Log into [Render.com](https://render.com) and click **New + > Web Service**.
-3. Select your repository.
-4. Render will auto-detect Python:
-   - **Build Command**: `pip install -r requirements.txt`
-   - **Start Command**: `gunicorn wsgi:app`
-5. Click **Deploy Web Service** — your app is live!
-
-### Option B: Deploy to Railway
-1. Install Railway CLI or connect via GitHub on [railway.app](https://railway.app).
-2. Railway will automatically pick up the included `Procfile` (`web: gunicorn wsgi:app`).
-3. (Optional) Add a MySQL database in Railway; set `MYSQL_HOST`, `MYSQL_USER`, `MYSQL_PASSWORD`, `MYSQL_DB` in environment variables.
-
-### Option C: Containerized Deployment (Docker)
-Build and run anywhere with Docker:
+Copy the example env file and fill in your values:
 
 ```bash
-# Build Docker image
-docker build -t medicare-app .
-
-# Run container
-docker run -d -p 5000:5000 --name medicare medicare-app
+cp .env.example .env
 ```
-Access at `http://localhost:5000`.
+
+Required variables in `.env`:
+
+```env
+DATABASE_URL=postgresql://user:pass@host/dbname?sslmode=require
+SECRET_KEY=your-secret-key
+SMTP_SERVER=smtp.gmail.com
+SMTP_PORT=587
+SMTP_USER=your-email@gmail.com
+SMTP_PASSWORD=your-app-password
+SMTP_FROM=your-email@gmail.com
+```
+
+### 4. Run development server
+
+```bash
+python run.py
+```
+
+Browser opens automatically at `http://127.0.0.1:5000/`.
 
 ---
 
-## 🗄️ MySQL Database Setup (Optional)
+## Production Deployment
 
-If you wish to use your local MySQL server (XAMPP / WAMP / MySQL Workbench):
+### Vercel (Recommended)
 
-1. Open your MySQL client (e.g., phpMyAdmin).
-2. Create database and tables by importing `schema.sql`:
-   ```sql
-   SOURCE schema.sql;
-   ```
-3. Update connection settings in `.env` or set environment variables:
-   ```env
-   MYSQL_HOST=localhost
-   MYSQL_PORT=3306
-   MYSQL_USER=root
-   MYSQL_PASSWORD=your_password
-   MYSQL_DB=medicare
-   ```
+1. Push to GitHub
+2. Import the repo on [vercel.com](https://vercel.com)
+3. Set environment variables (`DATABASE_URL`, `SECRET_KEY`, `SMTP_*`)
+4. Deploy -- Vercel uses `vercel.json` and `wsgi.py` automatically
 
-*Note: If no MySQL credentials are provided, Medicare automatically falls back to `medicare.db`.*
+### WSGI Server (VPS/VM)
+
+```bash
+python wsgi.py
+```
+
+Uses Waitress (Windows) or Gunicorn (Linux) for production-grade serving.
 
 ---
 
-## 🔑 Registered Accounts & Passwords
+## Security Architecture
 
-| Role | Name | Patient ID / Mobile / Email | Password |
-| :--- | :--- | :--- | :--- |
-| **Patient** | Kumkum Ganesh Wadile | `8788625747` (or `P00004`) | `kumkum123` |
-| **Patient** | Siya Shah | `8793373606` (or `P00002`) | `siya123` |
-| **Patient** | Anushka Satish Wankhede | `9518995318` (or `P00003`) | `anushka123` |
-| **Patient** | Eleanor Vance | `eleanor.vance@medicare.io` (or `P00001`) | `password123` |
-| **Authority** | Dr. Alexander Wright | `admin` | `admin123` (Code: `AUTH101`) |
+### Authentication Flow
 
-> 💡 **Built-in Database Manager**: Visit **`http://127.0.0.1:5000/database`** anytime to view and edit all tables, accounts, and passwords in real-time right from your browser!
+1. **Patients** -- Standard login with email/mobile + password
+2. **Doctors** -- Password login triggers 2FA email verification code (10-min expiry, single-use)
+3. **Authorities** -- Password login triggers 2FA email verification code (10-min expiry, single-use)
 
----
+### Protections
 
-## 🪪 Official Physical-Style Medical ID Card
-
-Medicare generates a standardized PVC Medical ID Card format matching clinical standards:
-- **Direct View & Print URL**: `http://127.0.0.1:5000/card/<patient_id>`
-- Features: Top blue banner (`MEDICAL ID CARD - Access My Health Record`), medical cross emblem, profile link, patient demographics, and high-density scannable QR code with bold `SCAN` badge.
+- **Rate limiting** -- 5 failed login attempts triggers 15-minute account lockout
+- **IDOR prevention** -- `verify_patient_access()` ensures patients only see their own data
+- **Doctor scoping** -- Doctors only see patients assigned to them via `doctor_patient_assignments`
+- **Role decorators** -- `@login_required` and `@role_required` on all protected routes
+- **Password hashing** -- Werkzeug scrypt with automatic hash verification
+- **2FA codes** -- Cryptographically random, SHA-256 hashed, 10-minute expiry, single-use
+- **Audit logging** -- All sensitive actions logged to `audit_logs` table
 
 ---
 
-## 📁 Project Structure
+## Database Schema
+
+The PostgreSQL schema (`schema.sql`) includes:
+
+| Table | Purpose |
+|-------|---------|
+| `users` | All user accounts (patients, doctors, authorities) with roles |
+| `patients` | Patient demographic and health profile data |
+| `verification_codes` | 2FA email verification codes (hashed) |
+| `doctor_patient_assignments` | Maps doctors to their authorized patients |
+| `audit_logs` | Security event logging |
+| `medical_records` | Prescriptions, lab reports, documents |
+| `family_history` | Multi-generational family medical history |
+| `genetic_history` | Genetic and hereditary condition tracking |
+
+---
+
+## Default Accounts
+
+| Role | Email | Password |
+|------|-------|----------|
+| Authority (Admin) | `admin@medicare.io` | `Admin@2024secure` |
+| Doctor | `dr.ananya@medicare.io` | `Doctor@2024secure` |
+| Patient | `eleanor.vance@medicare.io` | `password123` |
+
+> **Note:** Doctor and Authority logins require a 2FA email verification code after password entry. In development mode (no SMTP configured), codes are printed to the console.
+
+---
+
+## Project Structure
 
 ```
 Medicare/
-├── app.py                  # Core Flask routing, sessions, auth, and APIs
+├── app.py                  # Flask routes, sessions, auth, and APIs
+├── auth_service.py         # 2FA codes, rate limiting, IDOR authorization
 ├── ai_assistant.py         # Offline AI clinical decision engine
-├── db.py                   # Dual-database connection & automatic fallback
-├── wsgi.py                 # Production WSGI entrypoint (Waitress / Gunicorn)
-├── run.py                  # Development runner with auto-browser launch
-├── test_suite.py           # Automated unit & integration test suite
-├── schema.sql              # MySQL production database schema script
-├── requirements.txt        # Production dependencies list
-├── Procfile                # Render / Railway / Heroku deployment config
-├── Dockerfile              # Container deployment recipe
-├── .dockerignore           # Container ignore rules
+├── db.py                   # PostgreSQL (Neon) + SQLite fallback wrapper
+├── mailer.py               # SMTP email delivery for 2FA codes
+├── wsgi.py                 # Production WSGI entrypoint
+├── run.py                  # Development server with auto-browser launch
+├── schema.sql              # PostgreSQL database schema
+├── requirements.txt        # Python dependencies
+├── vercel.json             # Vercel deployment configuration
 ├── .env.example            # Environment variables template
-├── templates/
-│   ├── intro.html          # Public landing page
-│   ├── login.html          # Secure login with 1-click accounts & password recovery
-│   ├── Registration.html   # Registration with password creation & validation
-│   ├── database_manager.html # Built-in web database explorer & password manager
-│   ├── medical_id_card.html# Official printable photo-style Medical ID Card
-│   ├── dashboard.html      # Main patient dashboard with AI trigger & ID card
-│   ├── health_profile.html # Profile with Emergency QR generator & PVC ID card
-│   ├── ai_assistant.html   # Offline AI Health Assistant chat interface
-│   ├── family_history.html # Family medical tracking
-│   ├── genetic_history.html# Genetic condition risk mapper
-│   ├── medical_records.html# Prescriptions and lab reports archive
-│   ├── authority_dashboard.html # Hospital clinical lookup directory
-│   ├── settings.html       # Emergency SMS and notification settings
-│   ├── 404.html            # Error page: Page Not Found
-│   └── 500.html            # Error page: Internal Server Error
-└── README.md               # Complete documentation
+├── .gitignore              # Git ignore rules
+├── README.md               # This file
+└── templates/
+    ├── intro.html              # Public landing page
+    ├── login.html              # 3-tab login (Patient/Doctor/Authority)
+    ├── Registration.html       # Patient registration
+    ├── verify_code.html        # 2FA code entry page
+    ├── dashboard.html          # Patient dashboard
+    ├── doctor_dashboard.html   # Doctor portal (assigned patients only)
+    ├── doctor_registration.html # Doctor credential application
+    ├── authority_dashboard.html # Authority admin panel
+    ├── health_profile.html     # Patient health profile + QR generator
+    ├── medical_id_card.html    # Printable medical ID card
+    ├── medical_records.html    # Prescriptions and lab reports
+    ├── family_history.html     # Family medical history
+    ├── genetic_history.html    # Genetic condition tracking
+    ├── ai_assistant.html       # AI health assistant chat
+    ├── settings.html           # Emergency contacts and notifications
+    ├── 404.html                # Page not found
+    └── 500.html                # Internal server error
 ```
 
 ---
 
-## 📄 License
+## License
+
 Open source for educational and healthcare management development.
